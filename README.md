@@ -6,6 +6,16 @@
 
 **数据只在你自己的电脑上处理。** 默认不使用 AI、不联网；AI 提炼是可选的（Claude / 本地模型），开启后才会把相关聊天片段发给你选择的模型。
 
+## 下载安装
+
+| 平台 | 状态 | 下载 |
+|---|---|---|
+| **macOS · Apple 芯片（M 系列）** | ✅ 可用 | [最新 Release](https://github.com/vincentcrc/wechat-insights/releases/latest) 里的 `.pkg` |
+| macOS · Intel 芯片 | 🚧 计划中 | 见下方「平台支持」 |
+| Windows | 🚧 计划中 | 见下方「平台支持」 |
+
+下载 `.pkg` 后双击安装；第一次打开若被 Gatekeeper 拦（“来自身份不明的开发者”），右键点 App →「打开」。首次打开会图形化引导：给微信加调试签名（必要时弹一次管理员密码）→ 读取聊天库密钥 → 建好数据目录。也可以[从源码运行](#快速开始从源码运行)。
+
 ---
 
 ## 功能
@@ -25,6 +35,16 @@
 - macOS 12+，**Apple 芯片（M 系列）**
 - Mac 版微信 **4.1.x**（已登录）
 - 依赖 [wechat-cli](https://github.com/freestylefly/wechat-cli)（Apache-2.0）读取并解密本机微信数据库；需要先按它的说明拿到本机数据库密钥。
+
+## 平台支持
+
+| 平台 | 状态 | 说明 |
+|---|---|---|
+| macOS · Apple Silicon | ✅ 可用 | 开发和验证都在此平台 |
+| macOS · Intel (x86_64) | 🚧 计划中 | 需要重新打包一套 x86_64 的 Python，并针对 Intel 版微信重新校准读取密钥的那一步；缺一台 Intel Mac 来构建和验证，欢迎有条件的朋友 PR 或提供测试。 |
+| Windows | 🚧 计划中 | 不是简单重打包：读取密钥、授权、首次引导和安装包格式都需要换成 Windows 的实现（底层 `wechat-cli` 已支持 Windows），需要在 Windows 上开发和测试。欢迎 PR。 |
+
+> 目前只在 Apple Silicon + 微信 4.1.x 上验证过。其它芯片或差异较大的微信版本可能读不到密钥。
 
 ## 快速开始（从源码运行）
 
