@@ -1,0 +1,19 @@
+{
+  "persona": "本工具的使用者（聊天里写作 me）",
+  "persona_notes": [
+    "例：XX（微信备注「老婆」）是用户的配偶，她的消息正常处理。"
+  ],
+  "my_aliases": ["me"],
+  "skip_chats": [],
+  "inbox_skip": [],
+  "vip_chats": [],
+  "max_per_chat": 400,
+  "sns": true,
+  "sns_skip": [],
+  "sns_keywords_extra": {"people": []},
+  "ai_provider": "none",
+  "ollama_model": "qwen3:8b",
+  "claude_bin": "",
+  "claude_model": "",
+  "proxy": ""
+}

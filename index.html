@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>微信洞察</title>
+<style>
+:root{
+  --bg:#f6f5f2; --panel:#ffffff; --panel-2:#fbfaf8; --line:#e7e4de; --line-2:#d9d5cd;
+  --ink:#1c1b19; --ink-2:#4a4843; --ink-3:#85817a; --accent:#1f5eff; --accent-ink:#fff;
+  --major:#d93f3f; --major-bg:#fdecec; --focus:#c47a00; --focus-bg:#fff4df; --info:#6b7280; --info-bg:#f1f1ef;
+  --ok:#1f8f4e; --ok-bg:#e6f5ec; --watch:#2563eb; --watch-bg:#e8efff;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.04);
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141412; --panel:#1c1c1a; --panel-2:#20201e; --line:#2d2c29; --line-2:#3a3935;
+    --ink:#ecebe7; --ink-2:#bdbab3; --ink-3:#85817a; --accent:#6b93ff; --accent-ink:#0b0b0a;
+    --major:#ff6b6b; --major-bg:#3a1f1f; --focus:#f0b43c; --focus-bg:#3a2d14; --info:#9a978f; --info-bg:#262523;
+    --ok:#4cc27e; --ok-bg:#16301f; --watch:#7aa2ff; --watch-bg:#1a2440;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141412; --panel:#1c1c1a; --panel-2:#20201e; --line:#2d2c29; --line-2:#3a3935;
+  --ink:#ecebe7; --ink-2:#bdbab3; --ink-3:#85817a; --accent:#6b93ff; --accent-ink:#0b0b0a;
+  --major:#ff6b6b; --major-bg:#3a1f1f; --focus:#f0b43c; --focus-bg:#3a2d14; --info:#9a978f; --info-bg:#262523;
+  --ok:#4cc27e; --ok-bg:#16301f; --watch:#7aa2ff; --watch-bg:#1a2440;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px 80px}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:12px;padding-top:12px;padding-bottom:12px}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{font-size:18px;margin:0;letter-spacing:.5px}
+.brand .sub{color:var(--ink-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spacer{flex:1}
+.btn{border:1px solid var(--line-2);background:var(--panel);border-radius:8px;padding:6px 12px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.sm{padding:3px 9px;font-size:12px;border-radius:7px}
+.menu{position:relative}
+.menu-pop{position:absolute;right:0;top:calc(100% + 6px);background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.12);padding:6px;min-width:190px;display:none;z-index:30}
+.menu.open .menu-pop{display:block}
+.menu-pop button,.menu-pop label{display:flex;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:6px;gap:8px;align-items:center;cursor:pointer}
+.menu-pop button:hover,.menu-pop label:hover{background:var(--panel-2)}
+
+/* dimension + periods */
+.dimrow{display:flex;align-items:center;gap:12px;margin:18px 0 10px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;padding:5px 14px;border-radius:7px;color:var(--ink-2)}
+.seg button.on{background:var(--ink);color:var(--bg);font-weight:600}
+.periods{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin;flex:1;min-width:0}
+.pchip{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;color:var(--ink-2);display:flex;gap:6px;align-items:center}
+.pchip b{font-weight:600;color:var(--ink)}
+.pchip small{color:var(--ink-3)}
+.pchip.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.pchip .dot{width:7px;height:7px;border-radius:50%;background:var(--major)}
+
+/* period header */
+.phead{display:grid;grid-template-columns:1fr auto;gap:18px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.phead h2{margin:0 0 2px;font-size:20px}
+.phead .range{color:var(--ink-3);font-size:12px;margin-bottom:8px}
+.phead .range .tag{display:inline-block;border:1px solid var(--line-2);border-radius:5px;padding:0 6px;margin-right:6px;color:var(--ink-2)}
+.phead p{margin:0;color:var(--ink-2);max-width:80ch}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(78px,1fr));gap:8px;align-self:start}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--panel-2);text-align:left;cursor:pointer}
+.kpi:hover{border-color:var(--ink-3)}
+.kpi .n{font-size:22px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:12px;color:var(--ink-3)}
+.kpi.major .n{color:var(--major)} .kpi.focus .n{color:var(--focus)} .kpi.due .n{color:var(--watch)}
+
+/* carry-over */
+.carry{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.carry summary{list-style:none;display:flex;align-items:center;gap:8px;padding:12px 18px;cursor:pointer;font-weight:600}
+.carry summary::-webkit-details-marker{display:none}
+.carry summary .hint{font-weight:400;color:var(--ink-3);font-size:12px}
+.carry summary .chev{margin-left:auto;color:var(--ink-3);transition:transform .15s}
+.carry[open] summary .chev{transform:rotate(90deg)}
+.carry ul{list-style:none;margin:0;padding:0 10px 10px}
+.carry li{display:grid;grid-template-columns:auto auto 1fr auto auto;gap:10px;align-items:center;padding:7px 8px;border-radius:8px;cursor:pointer}
+.carry li:hover{background:var(--panel-2)}
+.carry li .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.carry li .from{color:var(--ink-3);font-size:12px}
+
+/* filters */
+.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:18px 0 12px}
+.search{flex:1 1 220px;min-width:180px;display:flex;align-items:center;gap:6px;border:1px solid var(--line-2);background:var(--panel);border-radius:9px;padding:6px 10px}
+.search input{border:0;outline:0;background:none;flex:1;min-width:0}
+.search kbd{font:11px ui-monospace,monospace;color:var(--ink-3);border:1px solid var(--line-2);border-radius:4px;padding:0 4px}
+select.sel{border:1px solid var(--line-2);background:var(--panel);border-radius:9px;padding:6px 8px;max-width:190px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 10px 3px 8px;font-size:12px;color:var(--ink-2);display:inline-flex;align-items:center;gap:6px}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .c{color:var(--ink-3)} .chip.on .c{color:inherit;opacity:.7}
+.toggle{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-size:13px;cursor:pointer;user-select:none}
+
+/* cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);position:relative;overflow:hidden;display:flex;flex-direction:column}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--info)}
+.card.major::before{background:var(--major)} .card.focus::before{background:var(--focus)}
+.card.is-done{opacity:.62}
+.card.is-done h3{text-decoration:line-through;text-decoration-color:var(--ink-3)}
+.card.sel{outline:2px solid var(--accent);outline-offset:-1px}
+.card.flash{animation:flash 1.4s ease}
+@keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:var(--shadow)}}
+.card .in{padding:14px 16px 12px 18px}
+.chead{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--ink-3)}
+.lv{font-weight:700;border-radius:5px;padding:1px 7px;font-size:11.5px}
+.lv.major{background:var(--major-bg);color:var(--major)} .lv.focus{background:var(--focus-bg);color:var(--focus)} .lv.info{background:var(--info-bg);color:var(--info)}
+.cat{display:inline-flex;align-items:center;gap:5px;color:var(--ink-2)}
+.cat i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.kind{border:1px solid var(--line-2);border-radius:5px;padding:0 5px}
+.cdate{margin-left:auto;white-space:nowrap}
+.pbadge{border-radius:5px;padding:0 6px;background:var(--panel-2);border:1px dashed var(--line-2);white-space:nowrap}
+.card h3{font-size:15.5px;line-height:1.4;margin:8px 0 6px}
+.card .sum{margin:0;color:var(--ink-2);font-size:13.5px}
+.action{margin-top:10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);padding:8px 10px;font-size:13px}
+.action b{color:var(--ink);margin-right:4px}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.due{font-size:12px;border-radius:6px;padding:1px 8px;background:var(--watch-bg);color:var(--watch);font-weight:600}
+.due.over{background:var(--major-bg);color:var(--major)} .due.soon{background:var(--focus-bg);color:var(--focus)}
+.who{font-size:12px;color:var(--ink-3);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.ev{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.ev summary{cursor:pointer;color:var(--ink-3);font-size:12px;list-style:none}
+.ev summary::-webkit-details-marker{display:none}
+.ev summary::before{content:"▸ ";}
+.ev[open] summary::before{content:"▾ ";}
+.ev ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.ev li{font-size:12.5px;border-left:2px solid var(--line-2);padding:2px 0 2px 8px;color:var(--ink-2)}
+.ev li .m{color:var(--ink-3);font-size:11.5px;display:block}
+.cfoot{margin-top:auto;display:flex;align-items:center;gap:6px;border-top:1px solid var(--line);padding:8px 10px 8px 14px;background:var(--panel-2);flex-wrap:wrap}
+.st{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.st button{border:0;background:none;padding:3px 9px;font-size:12px;color:var(--ink-3)}
+.st button+button{border-left:1px solid var(--line-2)}
+.st button.on[data-s="open"]{background:var(--major-bg);color:var(--major);font-weight:600}
+.st button.on[data-s="watch"]{background:var(--watch-bg);color:var(--watch);font-weight:600}
+.st button.on[data-s="done"]{background:var(--ok-bg);color:var(--ok);font-weight:600}
+.st button.on[data-s="info"]{background:var(--info-bg);color:var(--info);font-weight:600}
+.iconbtn{border:0;background:none;padding:3px 6px;border-radius:6px;color:var(--ink-3);font-size:13px}
+.iconbtn:hover{background:var(--line);color:var(--ink)}
+.iconbtn.star.on{color:#e0a100}
+.pick{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-3);cursor:pointer}
+.note{width:100%;margin-top:6px;border:1px solid var(--line-2);background:var(--panel);border-radius:8px;padding:6px 8px;font-size:12.5px;resize:vertical;min-height:34px;display:none}
+.card.has-note .note,.card.edit-note .note{display:block}
+
+/* timeline */
+.tl{position:relative;padding-left:22px}
+.tl::before{content:"";position:absolute;left:6px;top:4px;bottom:0;width:2px;background:var(--line)}
+.tl-day{margin-bottom:18px}
+.tl-day h4{margin:0 0 8px;font-size:13px;color:var(--ink-2);position:relative}
+.tl-day h4::before{content:"";position:absolute;left:-21px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--panel);border:2px solid var(--ink-3)}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px;cursor:pointer}
+.row:hover{border-color:var(--ink-3)}
+.row .t{font-weight:600}
+.row .s{color:var(--ink-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.is-done .t{text-decoration:line-through;color:var(--ink-3)}
+
+/* threads */
+.threads{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px}
+.thread{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.thread h3{margin:0 0 10px;font-size:15px;display:flex;gap:8px;align-items:center}
+.thread h3 small{font-weight:400;color:var(--ink-3);font-size:12px}
+.thread ol{list-style:none;margin:0;padding:0;position:relative}
+.thread li{display:grid;grid-template-columns:52px 1fr;gap:8px;padding:6px 0;border-top:1px dashed var(--line);cursor:pointer}
+.thread li:first-child{border-top:0}
+.thread li .d{color:var(--ink-3);font-size:12px;font-variant-numeric:tabular-nums}
+.thread li .t{font-size:13px}
+.thread li.is-done .t{color:var(--ink-3);text-decoration:line-through}
+
+.empty{padding:50px 20px;text-align:center;color:var(--ink-3);border:1px dashed var(--line-2);border-radius:var(--radius)}
+
+/* batch bar */
+.batch{position:fixed;left:50%;bottom:18px;transform:translate(-50%,120px);transition:transform .2s;background:var(--ink);color:var(--bg);border-radius:12px;padding:8px 10px 8px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;max-width:calc(100vw - 32px)}
+.batch.show{transform:translate(-50%,0)}
+.batch .btn{background:transparent;color:inherit;border-color:color-mix(in srgb,var(--bg) 35%,transparent)}
+.batch .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.show{display:flex}
+.dialog{background:var(--panel);border-radius:14px;max-width:760px;width:100%;max-height:calc(100vh - 32px);display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dialog header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dialog header h3{margin:0;font-size:16px}
+.dialog .body{padding:14px 18px;overflow:auto;display:grid;gap:12px}
+.dialog label.f{display:grid;gap:4px;font-size:12px;color:var(--ink-3)}
+.dialog textarea{width:100%;border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2);padding:10px 12px;font:12.5px/1.6 ui-monospace,"SF Mono",Menlo,monospace;min-height:120px;resize:vertical}
+.dialog textarea.prompt{min-height:300px;font-family:inherit;font-size:13px}
+.dialog footer{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opts button{border:1px solid var(--line-2);background:var(--panel);border-radius:8px;padding:5px 11px}
+.opts button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.help{font-size:12px;color:var(--ink-3)}
+.toast{position:fixed;top:70px;left:50%;transform:translate(-50%,-20px);opacity:0;background:var(--ink);color:var(--bg);border-radius:9px;padding:8px 14px;transition:.2s;z-index:60;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* 已完成 */
+body.v-done .dimrow, body.v-done #phead, body.v-done #carry, body.v-done #inbox {display:none}
+#inbox:empty{display:none}
+body.v-sns #phead, body.v-sns #carry, body.v-sns #inbox, body.v-sns #fStatus, body.v-sns #fChat, body.v-sns #fStar, body.v-sns #fStar + *, body.v-sns #lvChips, body.v-sns #catChips {display:none}
+body.v-sns .toggle:has(#fStar){display:none}
+.snsbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:4px 0 14px}
+.snsbar h2{margin:0;font-size:20px}
+.snsfeed{display:grid;gap:10px;max-width:820px}
+.sday{margin:10px 0 2px;font-size:13px;color:var(--ink-2);font-weight:600}
+.sns{display:grid;grid-template-columns:40px 1fr;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.sns.ad{opacity:.55}
+.sns .av{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-weight:700;color:#fff;font-size:16px}
+.sns .hd{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.sns .hd b{font-size:14px}
+.sns .tm{color:var(--ink-3);font-size:12px}
+.sns .kd{font-size:11px;border:1px solid var(--line-2);border-radius:5px;padding:0 5px;color:var(--ink-3)}
+.sns .tg{font-size:11px;border-radius:5px;padding:0 6px;background:var(--focus-bg);color:var(--focus)}
+.sns .tx{margin:6px 0 0;white-space:pre-wrap;word-break:break-word;font-size:14px}
+.sns .lk{margin-top:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px;color:var(--ink-2)}
+.sns .loc{margin-top:4px;font-size:12px;color:var(--ink-3)}
+.sns .ft{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.sns mark{background:var(--focus-bg);color:inherit}
+.ibx li{grid-template-columns:auto 1fr auto auto auto}
+.ibx .snip{color:var(--ink-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ibx .dotf{width:8px;height:8px;border-radius:50%;background:var(--focus)} .ibx .doti{width:8px;height:8px;border-radius:50%;background:var(--line-2)}
+body.v-done #fStatus{display:none}
+.donehead{display:flex;align-items:baseline;gap:10px;margin:18px 0 12px}
+.donehead h2{margin:0;font-size:20px}
+.dgroup{margin-bottom:16px}
+.dgroup h4{margin:0 0 8px;font-size:13px;color:var(--ink-2)}
+.drow{display:grid;grid-template-columns:48px auto 1fr auto auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px;cursor:pointer}
+.drow:hover{border-color:var(--ink-3)}
+.drow .tm{color:var(--ink-3);font-size:12px;font-variant-numeric:tabular-nums}
+.drow .t{min-width:0}
+.drow .t b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drow .t small{color:var(--ink-3);font-size:12px}
+.drow .ok{color:var(--ok);font-weight:700}
+.dexp{margin:-2px 0 10px}
+.card.leaving{transition:opacity .25s, transform .25s;opacity:0;transform:scale(.97)}
+#viewSeg button .cnt{font-size:11px;color:var(--ink-3);margin-left:4px}
+#viewSeg button.on .cnt{color:inherit;opacity:.7}
+.toast button{margin-left:10px;border:0;background:none;color:var(--accent);font-weight:600;cursor:pointer;pointer-events:auto}
+.toast.show{pointer-events:auto}
+@media (max-width:760px){ .drow{grid-template-columns:40px 1fr auto} .drow .lv,.drow .from{display:none} }
+
+/* 本地服务 */
+.svb{font-size:12px;color:var(--ink-3);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:default}
+.svb i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.svb.on i{background:var(--ok)} .svb.warn i{background:var(--focus)} .svb.run i{background:var(--watch);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+.steps{display:flex;gap:8px;flex-wrap:wrap}
+.stp{border:1px solid var(--line-2);border-radius:8px;padding:4px 10px;font-size:12.5px;color:var(--ink-3)}
+.stp.running{border-color:var(--watch);color:var(--watch);font-weight:600}
+.stp.done{border-color:var(--ok);color:var(--ok)} .stp.error{border-color:var(--major);color:var(--major)} .stp.skipped{opacity:.5;text-decoration:line-through}
+.jlog{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:12px/1.6 ui-monospace,Menlo,monospace;max-height:180px;overflow:auto;color:var(--ink-2)}
+.jlog div span{color:var(--ink-3);margin-right:8px}
+.notice{border-radius:10px;padding:10px 12px;font-size:13px;background:var(--focus-bg);color:var(--ink)}
+.notice.err{background:var(--major-bg)} .notice.ok{background:var(--ok-bg)}
+.notice code{background:var(--panel);border:1px solid var(--line-2);border-radius:5px;padding:1px 6px;font-size:12px}
+.res h4{margin:6px 0 4px;font-size:13px}
+.res ul{margin:0;padding-left:18px;font-size:13px}
+.answer{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13.5px;line-height:1.7;white-space:normal}
+.answer p{margin:.3em 0}
+.msgs{display:grid;gap:10px}
+.mchat{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mchat h5{margin:0;padding:7px 12px;background:var(--panel-2);font-size:13px;display:flex;gap:8px;border-bottom:1px solid var(--line)}
+.mchat h5 small{color:var(--ink-3);font-weight:400}
+.mchat ol{list-style:none;margin:0;padding:6px 12px;max-height:320px;overflow:auto;display:grid;gap:3px}
+.mchat li{font-size:12.5px;color:var(--ink-2)}
+.mchat li .tm{color:var(--ink-3);font-size:11.5px;margin-right:6px;font-variant-numeric:tabular-nums}
+.mchat li.me{color:var(--ink)} .mchat li.me .who2{color:var(--accent)}
+.mchat mark{background:var(--focus-bg);color:inherit;border-radius:3px;padding:0 2px}
+.who2{font-weight:600;margin-right:4px}
+.row2{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row2 input[type=date]{border:1px solid var(--line-2);background:var(--panel);border-radius:8px;padding:4px 6px}
+.dialog.wide{max-width:900px}
+
+@media (max-width:760px){
+  .wrap{padding:0 16px 90px}
+  .brand .sub{display:none}
+  .phead{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .grid,.threads{grid-template-columns:1fr}
+  .carry li{grid-template-columns:auto 1fr auto}
+  .carry li .cat,.carry li .from{display:none}
+  .top .btn .lbl{display:none}
+  .periods{flex-basis:100%}
+  .carry summary .hint{display:none}
+  .kpi{padding:8px}
+  .kpi .l{font-size:11px}
+}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <div class="brand"><h1>微信洞察</h1><span class="sub" id="sub"></span></div>
+  <div class="spacer"></div>
+  <span class="svb" id="svBadge"></span>
+  <button class="btn" id="btnUpdate" title="生成让 Claude 拉取新一期数据的指令">⟳ <span class="lbl">更新数据</span></button>
+  <button class="btn primary" id="btnQuery" title="按当前筛选生成查询指令">⌕ <span class="lbl">生成查询指令</span></button>
+  <div class="menu" id="menu">
+    <button class="btn ghost" id="btnMore" aria-label="更多">⋯</button>
+    <div class="menu-pop">
+      <button id="mExport">⤓ 导出处理状态（JSON）</button>
+      <button id="mImport">⤒ 导入处理状态</button>
+      <label><input type="checkbox" id="mPrivate"> 显示「私密」分类</label>
+      <button id="mTheme">◐ 切换深浅色</button>
+      <button id="mReset">↺ 清空本机处理状态</button>
+    </div>
+  </div>
+  <input type="file" id="fileImport" accept="application/json" hidden>
+</div></div>
+
+<main class="wrap">
+  <div class="dimrow">
+    <div class="seg" id="dimSeg">
+      <button data-d="day">日</button><button data-d="week">周</button><button data-d="month">月</button><button data-d="all">全部</button>
+    </div>
+    <div class="periods" id="periods"></div>
+  </div>
+
+  <section class="phead" id="phead"></section>
+
+  <details class="carry" id="carry" open></details>
+  <details class="carry" id="inbox" open></details>
+
+  <div class="filters">
+    <label class="search"><span>⌕</span><input id="q" placeholder="搜索标题、摘要、人名、会话…"><kbd>/</kbd></label>
+    <select class="sel" id="fStatus">
+      <option value="">全部（不含已完成）</option>
+      <option value="active">未完成（待处理+跟进）</option>
+      <option value="open">待处理</option>
+      <option value="watch">跟进中</option>
+      <option value="info">仅参考</option>
+    </select>
+    <select class="sel" id="fChat"><option value="">全部会话</option></select>
+    <label class="toggle"><input type="checkbox" id="fStar"> 仅星标</label>
+    <div class="spacer"></div>
+    <div class="seg" id="viewSeg"><button data-v="cards">卡片</button><button data-v="timeline">时间线</button><button data-v="threads">线索</button><button data-v="sns">朋友圈</button><button data-v="done">已完成<span class="cnt" id="doneCnt"></span></button></div>
+  </div>
+  <div class="chips" id="lvChips"></div>
+  <div class="chips" id="catChips"></div>
+
+  <div id="content"></div>
+</main>
+
+<div class="batch" id="batch">
+  <span id="batchN"></span>
+  <button class="btn sm" id="bDone">标记完成</button>
+  <button class="btn sm primary" id="bQuery">生成查询指令</button>
+  <button class="btn sm" id="bClear">取消</button>
+</div>
+
+<div class="modal" id="modal"><div class="dialog">
+  <header><h3 id="mTitle"></h3><div class="spacer"></div><button class="btn ghost" data-close>✕</button></header>
+  <div class="body" id="mBody"></div>
+  <footer id="mFoot"></footer>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+"use strict";
+const D = window.WXI_DATA;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const WEEKDAY = ["日","一","二","三","四","五","六"];
+
+if (!D) {
+  document.querySelector("main").innerHTML = '<div class="empty" style="margin-top:40px">没找到 data.js。请在终端运行 <code>python3 ~/wechat-insights/build.py</code> 后刷新。</div>';
+  return;
+}
+
+/* ---------- 本地服务（用 App 打开时可用） ---------- */
+const SV = window.WXI_SERVER || null;
+let SVS = null;
+async function api(path, body){
+  const r = await fetch(path, {method: body ? "POST" : "GET", headers: {"X-WXI-Token": SV.token, "Content-Type": "application/json"}, body: body ? JSON.stringify(body) : undefined});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.error || ("HTTP " + r.status)), {data: j, status: r.status});
+  return j;
+}
+
+/* ---------- 本机状态（处理进度 / 星标 / 备注） ---------- */
+const STORE = "wxi.state.v1", PREF = "wxi.pref.v1";
+const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+let S = load(STORE, {});
+const pref = Object.assign({dim:"week", period:null, view:"cards", status:"", showPrivate:false, theme:null, levels:[], cats:[]}, load(PREF, {}));
+if (pref.theme) document.documentElement.dataset.theme = pref.theme;
+if (pref.status === "done") pref.status = "";
+/* 每天第一次打开回到「当前」周期（不然过了周末还停在上周） */
+if (pref.openedOn !== new Date().toDateString()) { pref.period = null; pref.openedOn = new Date().toDateString(); }
+
+const st = c => (S[c.id] && S[c.id].status) || c.status || "info";
+const starred = c => !!(S[c.id] && S[c.id].star);
+const noteOf = c => (S[c.id] && S[c.id].note) || "";
+function setState(id, patch){ S[id] = Object.assign({}, S[id], patch, {updated: new Date().toISOString()}); save(STORE, S); pushState(); }
+/* 完成时间：优先用户点「完成」的时间；数据里本身就是 done 的卡片（Claude 标的）用卡片的 done_at 或日期 */
+function migrateState(){ Object.values(S).forEach(v => { if (v.status === "done" && !v.done_at) v.done_at = v.updated || new Date().toISOString(); }); save(STORE, S); }
+migrateState();
+function doneAt(c){
+  const v = S[c.id];
+  if (v && v.status) return v.status === "done" ? (v.done_at || v.updated || "") : "";
+  return c.status === "done" ? (c.done_at || c.date + "T00:00:00") : "";
+}
+const isDone = c => st(c) === "done";
+function setStatus(id, s){
+  const prev = Object.assign({}, S[id]);
+  setState(id, s === "done" ? {status: "done", done_at: new Date().toISOString()} : {status: s, done_at: null});
+  return prev;
+}
+function pushState(){ if (!SV) return; clearTimeout(pushState.t); pushState.t = setTimeout(() => api("/api/state", {state: S}).catch(() => {}), 800); }
+
+/* ---------- 日期工具 ---------- */
+const parse = s => { const [y,m,d] = s.slice(0,10).split("-").map(Number); return new Date(y, m-1, d); };
+const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const md = s => s ? s.slice(5,10) : "";
+function isoWeek(d){
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y = t.getUTCFullYear(), w = Math.ceil(((t - Date.UTC(y,0,1)) / 864e5 + 1) / 7);
+  return `${y}-W${String(w).padStart(2,"0")}`;
+}
+function weekRange(id){
+  const [y, w] = id.split("-W").map(Number);
+  const jan4 = new Date(y, 0, 4), mon = new Date(jan4); mon.setDate(jan4.getDate() - ((jan4.getDay()+6)%7) + (w-1)*7);
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  return [fmt(mon), fmt(sun)];
+}
+const TODAY = fmt(new Date());
+const daysTo = s => Math.round((parse(s) - parse(TODAY)) / 864e5);
+function dueLabel(s){
+  const n = daysTo(s);
+  if (n < 0) return {t:`已过期 ${-n} 天 · ${md(s)}`, cls:"over"};
+  if (n === 0) return {t:`今天到期 · ${md(s)}`, cls:"over"};
+  if (n <= 3) return {t:`还有 ${n} 天 · ${md(s)}`, cls:"soon"};
+  return {t:`截止 ${md(s)} · ${n} 天`, cls:""};
+}
+const bucket = (c, dim) => dim === "day" ? c.date : dim === "week" ? isoWeek(parse(c.date)) : dim === "month" ? c.date.slice(0,7) : "all";
+const periodById = id => D.periods.find(p => p.id === id);
+
+/* ---------- 可见卡片集合 ---------- */
+const cardsAll = () => D.cards.filter(c => pref.showPrivate || c.category !== "private");
+
+function bucketsFor(dim){
+  const m = new Map();
+  cardsAll().forEach(c => {
+    if (c.rollup && dim !== "month") return;
+    const b = bucket(c, dim);
+    const o = m.get(b) || {id:b, n:0, major:0};
+    if (!isDone(c) && c.category !== "inbox") o.n++; if (c.level === "major" && ["open","watch"].includes(st(c))) o.major++;
+    m.set(b, o);
+  });
+  return [...m.values()].sort((a,b) => b.id.localeCompare(a.id));
+}
+function inPeriod(c){
+  if (pref.dim === "all") return true;
+  if (c.rollup && pref.dim !== "month") return false;
+  if (pref.dim === "day" && c.due === pref.period) return true;
+  return bucket(c, pref.dim) === pref.period;
+}
+function matchFilters(c, opts = {}){
+  const s = st(c);
+  if (c.category === "inbox" && !pref.cats.includes("inbox") && !opts.keepDone) return false;
+  if (s === "done" && !opts.keepDone) return false;
+  if (!opts.ignoreStatus && pref.status === "active" && !["open","watch"].includes(s)) return false;
+  if (!opts.ignoreStatus && pref.status && pref.status !== "active" && s !== pref.status) return false;
+  if (pref.levels.length && !pref.levels.includes(c.level)) return false;
+  if (pref.cats.length && !pref.cats.includes(c.category)) return false;
+  if ($("#fStar").checked && !starred(c)) return false;
+  const chat = $("#fChat").value;
+  if (chat && !c.chats.includes(chat)) return false;
+  const q = $("#q").value.trim().toLowerCase();
+  if (q) {
+    const hay = [c.title, c.summary, c.action, ...c.people, ...c.chats, ...c.tags, noteOf(c), ...(c.evidence||[]).map(e => e.join(" "))].join(" ").toLowerCase();
+    if (!q.split(/\s+/).every(w => hay.includes(w))) return false;
+  }
+  return true;
+}
+const rankSort = (a, b) =>
+  (D.levels[a.level].rank - D.levels[b.level].rank) ||
+  (["open","watch","info","done"].indexOf(st(a)) - ["open","watch","info","done"].indexOf(st(b))) ||
+  ((a.due || "9999").localeCompare(b.due || "9999")) || b.date.localeCompare(a.date);
+
+/* ---------- 渲染：维度与周期 ---------- */
+function periodLabel(dim, id){
+  if (dim === "day") { const d = parse(id); return {main: md(id), sub: (id === TODAY ? "今天 · " : "") + "周" + WEEKDAY[d.getDay()]}; }
+  if (dim === "week") { const [a,b] = weekRange(id); const cur = isoWeek(parse(TODAY)) === id; return {main: `W${id.split("-W")[1]}`, sub: (cur ? "本周 · " : "") + `${md(a)}~${md(b)}`}; }
+  if (dim === "month") { return {main: `${Number(id.slice(5))}月`, sub: id.slice(0,4)}; }
+  return {main: "全部", sub: ""};
+}
+function renderPeriods(){
+  document.querySelectorAll("#dimSeg button").forEach(b => b.classList.toggle("on", b.dataset.d === pref.dim));
+  const box = $("#periods");
+  if (pref.dim === "all") { box.innerHTML = '<span class="help">显示所有周期的卡片</span>'; pref.period = "all"; return; }
+  const bs = bucketsFor(pref.dim);
+  if (!bs.find(b => b.id === pref.period)) {
+    const cur = pref.dim === "day" ? TODAY : pref.dim === "week" ? isoWeek(parse(TODAY)) : TODAY.slice(0,7);
+    pref.period = (bs.find(b => b.id === cur) || bs[0] || {}).id || null;
+  }
+  box.innerHTML = bs.map(b => { const l = periodLabel(pref.dim, b.id);
+    return `<button class="pchip ${b.id === pref.period ? "on" : ""}" data-p="${b.id}">${b.major ? '<span class="dot" title="有未完成的重大事项"></span>' : ""}<b>${l.main}</b><small>${l.sub} · ${b.n}</small></button>`; }).join("");
+}
+function renderHead(){
+  const pool = cardsAll().filter(inPeriod);
+  const active = pool.filter(c => ["open","watch"].includes(st(c)));
+  const k = {
+    major: active.filter(c => c.level === "major").length,
+    focus: active.filter(c => c.level === "focus").length,
+    todo: pool.filter(c => st(c) === "open").length,
+    due: cardsAll().filter(c => c.due && ["open","watch"].includes(st(c)) && daysTo(c.due) <= 7).length,
+  };
+  let title, range, summary = "", tags = [];
+  if (pref.dim === "all") { title = "全部周期"; range = `${D.periods.length} 份周期报告 · ${pool.length} 张卡片`; summary = (periodById(D.periods.find(p => p.type === "month")?.id) || {}).summary || ""; }
+  else if (pref.dim === "week") {
+    const p = periodById(pref.period), [a,b] = weekRange(pref.period);
+    title = p ? p.label : `第${pref.period.split("-W")[1]}周`; range = `${a} ~ ${b}`; summary = p ? p.summary : "";
+    tags.push("周报"); if (p && p.extracted_until) tags.push("抽取至 " + p.extracted_until); if (p && p.note) tags.push(p.note);
+  } else if (pref.dim === "month") {
+    const p = periodById(pref.period);
+    title = p ? p.label : pref.period; range = p ? `${p.start} ~ ${p.end}` : pref.period; summary = p ? p.summary : "";
+    tags.push("月报"); if (p && p.extracted_until) tags.push("抽取至 " + p.extracted_until);
+  } else {
+    const d = parse(pref.period); title = `${pref.period.slice(5).replace("-","月")}日 周${WEEKDAY[d.getDay()]}`; range = pref.period; tags.push("日报");
+    const wk = periodById(isoWeek(d)); summary = `当天有 ${pool.length} 张卡片${wk ? `，属于「${wk.label}」。` : "。"}到期日在当天的卡片也会列在这里。`;
+  }
+  $("#phead").innerHTML = `<div><h2>${esc(title)}</h2><div class="range">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${esc(range)}</div><p>${esc(summary)}</p></div>
+  <div class="kpis">
+    <button class="kpi major" data-k="major"><div class="n">${k.major}</div><div class="l">重大·未完成</div></button>
+    <button class="kpi focus" data-k="focus"><div class="n">${k.focus}</div><div class="l">需关注·未完成</div></button>
+    <button class="kpi" data-k="todo"><div class="n">${k.todo}</div><div class="l">待处理</div></button>
+    <button class="kpi due" data-k="due"><div class="n">${k.due}</div><div class="l">7 天内到期</div></button>
+  </div>`;
+}
+let carryAll = false;
+function renderCarry(){
+  const items = cardsAll().filter(c => !c.rollup && c.category !== "inbox" && ["open","watch"].includes(st(c)) && (c.level !== "info" || c.due))
+    .sort((a,b) => (a.due || "9999").localeCompare(b.due || "9999") || D.levels[a.level].rank - D.levels[b.level].rank || b.date.localeCompare(a.date));
+  const el = $("#carry");
+  const wasOpen = el.dataset.init ? el.open : true; el.dataset.init = 1;
+  el.innerHTML = `<summary>📌 跨周期未完成 <span class="hint">重大、需关注的事项和有截止日的卡片，不受周期筛选影响 · ${items.length} 项</span><span class="chev">›</span></summary>
+    <ul>${items.slice(0, carryAll ? 99 : 6).map(c => { const cat = D.categories[c.category]; const due = c.due ? dueLabel(c.due) : null;
+      return `<li data-go="${c.id}"><span class="lv ${c.level}">${D.levels[c.level].name}</span><span class="cat"><i style="background:${cat.color}"></i>${cat.name}</span><span class="t">${esc(c.title)}</span>${due ? `<span class="due ${due.cls}">${due.t}</span>` : "<span></span>"}<span class="from">${periodShort(c)}</span></li>`; }).join("")}
+    ${items.length > 6 ? `<li class="more" data-more><span></span><span class="t" style="grid-column:2/-1;color:var(--accent)">${carryAll ? "收起" : `展开其余 ${items.length - 6} 项`}</span></li>` : ""}</ul>`;
+  el.open = wasOpen;
+}
+function periodShort(c){
+  const p = periodById(c.period); if (!p) return c.period;
+  return (p.type === "month" ? "月报 " : p.type === "week" ? "周报 " : "") + (p.type === "week" ? "W" + p.id.split("-W")[1] : p.label);
+}
+
+/* ---------- 渲染：筛选 chips ---------- */
+function renderChips(){
+  const pool = cardsAll().filter(c => pref.view === "threads" || inPeriod(c));
+  $("#lvChips").innerHTML = Object.entries(D.levels).map(([k,v]) =>
+    `<button class="chip ${pref.levels.includes(k) ? "on" : ""}" data-lv="${k}"><i style="background:var(--${k})"></i>${v.name}<span class="c">${pool.filter(c => c.level === k).length}</span></button>`).join("")
+    + `<span class="help" style="align-self:center;margin-left:6px">级别可多选，不选即全部</span>`;
+  const cats = Object.entries(D.categories).filter(([k]) => (pref.showPrivate || k !== "private") && cardsAll().some(c => c.category === k));
+  $("#catChips").innerHTML = cats.map(([k,v]) =>
+    `<button class="chip ${pref.cats.includes(k) ? "on" : ""}" data-cat="${k}"><i style="background:${v.color}"></i>${v.name}<span class="c">${pool.filter(c => c.category === k).length}</span></button>`).join("");
+  const chats = [...new Set(cardsAll().flatMap(c => c.chats))].sort((a,b) => a.localeCompare(b, "zh"));
+  const cur = $("#fChat").value;
+  $("#fChat").innerHTML = '<option value="">全部会话</option>' + chats.map(c => `<option ${c === cur ? "selected" : ""}>${esc(c)}</option>`).join("");
+}
+
+/* ---------- 渲染：卡片 ---------- */
+const STATUS_BTNS = [["open","待处理"],["watch","跟进"],["done","完成"],["info","参考"]];
+function cardHTML(c){
+  const cat = D.categories[c.category], s = st(c), note = noteOf(c), due = c.due ? dueLabel(c.due) : null;
+  const ev = (c.evidence || []).map(e => `<li>${esc(e[2])}<span class="m">${esc(e[0])} · ${esc(e[1])}${e[3] ? " · " + esc(e[3]) : ""}</span></li>`).join("");
+  return `<article class="card ${c.level} ${s === "done" ? "is-done" : ""} ${note ? "has-note" : ""} ${sel.has(c.id) ? "sel" : ""}" id="card-${c.id}" data-id="${c.id}">
+  <div class="in">
+    <div class="chead"><span class="lv ${c.level}">${D.levels[c.level].name}</span><span class="cat"><i style="background:${cat.color}"></i>${cat.name}</span><span class="kind">${D.kinds[c.kind] || "信息"}</span>
+      <span class="cdate">${md(c.date)} 周${WEEKDAY[parse(c.date).getDay()]}</span><span class="pbadge" title="来源周期">${periodShort(c)}</span></div>
+    <h3>${esc(c.title)}</h3>
+    <p class="sum">${esc(c.summary)}</p>
+    ${c.action ? `<div class="action"><b>下一步</b>${esc(c.action)}</div>` : ""}
+    <div class="meta">${due ? `<span class="due ${due.cls}">⏰ ${due.t}</span>` : ""}${c.thread ? `<span class="who" title="所属线索">🧵 ${esc(D.threads[c.thread] || c.thread)}</span>` : ""}${c.chats.slice(0,3).map(x => `<span class="who">💬 ${esc(x)}</span>`).join("")}${c.chats.length > 3 ? `<span class="who">+${c.chats.length - 3}</span>` : ""}</div>
+    ${ev ? `<details class="ev"><summary>原文依据 ${c.evidence.length} 条</summary><ol>${ev}</ol></details>` : ""}
+    <textarea class="note" placeholder="写点备注…（只存在本机浏览器）">${esc(note)}</textarea>
+  </div>
+  <div class="cfoot">
+    <span class="st">${STATUS_BTNS.map(([k,l]) => `<button data-s="${k}" class="${s === k ? "on" : ""}">${l}</button>`).join("")}</span>
+    <button class="iconbtn star ${starred(c) ? "on" : ""}" data-act="star" title="星标">${starred(c) ? "★" : "☆"}</button>
+    <button class="iconbtn" data-act="note" title="备注">✎</button>
+    <button class="iconbtn" data-act="query" title="生成这张卡的查询指令">⌕ 查询</button>
+    <label class="pick"><input type="checkbox" data-act="pick" ${sel.has(c.id) ? "checked" : ""}> 选择</label>
+  </div></article>`;
+}
+function rowHTML(c){
+  const cat = D.categories[c.category];
+  return `<div class="row ${st(c) === "done" ? "is-done" : ""}" data-go="${c.id}"><span class="lv ${c.level}">${D.levels[c.level].name}</span>
+    <div style="min-width:0"><div class="t">${esc(c.title)}</div><div class="s"><span style="color:${cat.color}">■</span> ${cat.name} · ${esc(c.chats.slice(0,2).join("、"))}</div></div>
+    <span class="help">${c.due ? "⏰ " + md(c.due) : ""}</span></div>`;
+}
+function renderContent(){
+  document.querySelectorAll("#viewSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === pref.view));
+  document.body.classList.toggle("v-done", pref.view === "done");
+  document.body.classList.toggle("v-sns", pref.view === "sns");
+  if (pref.view === "sns") { $("#doneCnt").textContent = cardsAll().filter(isDone).length || ""; return renderSns(); }
+  $("#doneCnt").textContent = cardsAll().filter(isDone).length || "";
+  if (pref.view === "done") return renderDone();
+  const list = cardsAll().filter(c => (pref.view === "threads" || inPeriod(c)) && matchFilters(c, {keepDone: pref.view === "threads"}));
+  const box = $("#content");
+  if (!list.length) { box.innerHTML = `<div class="empty">当前筛选下没有卡片。<br><br><button class="btn" id="clearF">清除筛选</button></div>`; return; }
+  if (pref.view === "cards") {
+    const roll = list.filter(c => c.rollup).sort(rankSort), rest = list.filter(c => !c.rollup).sort(rankSort);
+    box.innerHTML = (roll.length ? `<h3 style="margin:4px 0 10px;font-size:14px;color:var(--ink-2)">月度主线</h3><div class="grid" style="margin-bottom:22px">${roll.map(cardHTML).join("")}</div><h3 style="margin:4px 0 10px;font-size:14px;color:var(--ink-2)">当月卡片</h3>` : "")
+      + `<div class="grid">${rest.map(cardHTML).join("")}</div>`;
+  } else if (pref.view === "timeline") {
+    const byDay = {}; list.filter(c => !c.rollup).forEach(c => (byDay[c.date] = byDay[c.date] || []).push(c));
+    box.innerHTML = `<div class="tl">${Object.keys(byDay).sort().reverse().map(d => `<div class="tl-day"><h4>${d} 周${WEEKDAY[parse(d).getDay()]}${d === TODAY ? " · 今天" : ""}</h4>${byDay[d].sort(rankSort).map(rowHTML).join("")}</div>`).join("")}</div>`;
+  } else {
+    const byT = {}; list.forEach(c => (byT[c.thread || "_"] = byT[c.thread || "_"] || []).push(c));
+    const order = Object.keys(byT).sort((a,b) => Math.min(...byT[a].map(c => D.levels[c.level].rank)) - Math.min(...byT[b].map(c => D.levels[c.level].rank)) || byT[b].length - byT[a].length);
+    box.innerHTML = `<p class="help" style="margin:0 0 10px">线索视图跨所有周期，按事情的来龙去脉排列；上面的筛选（级别、分类、状态、搜索）仍然生效。</p><div class="threads">${order.map(t => { const cs = byT[t].sort((a,b) => a.date.localeCompare(b.date)); const open = cs.filter(c => ["open","watch"].includes(st(c))).length;
+      return `<section class="thread"><h3>🧵 ${esc(D.threads[t] || "未归类")} <small>${cs.length} 张 · ${open} 未完成</small><span class="spacer"></span><button class="btn sm" data-tq="${t}">⌕ 查询这条线</button></h3>
+      <ol>${cs.map(c => `<li class="${st(c) === "done" ? "is-done" : ""}" data-go="${c.id}"><span class="d">${md(c.date)}</span><span class="t"><span class="lv ${c.level}">${D.levels[c.level].name}</span> ${esc(c.title)}</span></li>`).join("")}</ol></section>`; }).join("")}</div>`;
+  }
+}
+
+function fmtDoneTime(iso){
+  if (!iso) return {day: "未知", tm: ""};
+  if (/T00:00:00$/.test(iso) && iso.length <= 19) return {day: iso.slice(0,10), tm: "—"};   // 数据里自带的完成，只有日期
+  const d = new Date(iso); return {day: fmt(d), tm: `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`};
+}
+function dayTitle(day){
+  if (day === TODAY) return "今天";
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  if (day === fmt(y)) return "昨天";
+  return day === "未知" ? day : `${day.slice(5).replace("-","月")}日 周${WEEKDAY[parse(day).getDay()]}`;
+}
+function renderDone(){
+  const box = $("#content");
+  const list = cardsAll().filter(c => isDone(c) && matchFilters(c, {keepDone: true, ignoreStatus: true}))
+    .map(c => ({c, at: doneAt(c)})).sort((a,b) => (b.at || "").localeCompare(a.at || ""));
+  const total = cardsAll().filter(isDone).length;
+  if (!total) { box.innerHTML = `<div class="donehead"><h2>已完成</h2></div><div class="empty">还没有完成的卡片。<br>在卡片底部点「完成」，它就会收进这里。</div>`; return; }
+  const groups = [];
+  list.forEach(x => { const f = fmtDoneTime(x.at); x.tm = f.tm; const g = groups[groups.length - 1];
+    if (g && g.day === f.day) g.items.push(x); else groups.push({day: f.day, items: [x]}); });
+  box.innerHTML = `<div class="donehead"><h2>已完成</h2><span class="help">${list.length === total ? `共 ${total} 张` : `筛选出 ${list.length} / ${total} 张`} · 按点「完成」的时间倒序；点一行展开卡片，「恢复」可放回待处理</span></div>`
+    + (list.length ? groups.map(g => `<div class="dgroup"><h4>${dayTitle(g.day)}</h4>${g.items.map(({c, tm}) => { const cat = D.categories[c.category];
+      return `<div class="drow" data-dexp="${c.id}"><span class="tm">${tm}</span><span class="lv ${c.level}">${D.levels[c.level].name}</span>
+        <span class="t"><b>${esc(c.title)}</b><small><span style="color:${cat.color}">■</span> ${cat.name} · ${periodShort(c)}${c.date ? " · 事情发生在 " + md(c.date) : ""}</small></span>
+        <span class="ok" title="已完成">✓</span><button class="btn sm" data-undone="${c.id}">恢复</button></div><div class="dexp" id="dexp-${c.id}" hidden></div>`; }).join("")}</div>`).join("")
+      : `<div class="empty">当前筛选下没有已完成的卡片。<br><br><button class="btn" id="clearF">清除筛选</button></div>`);
+}
+function undoToast(text, id, prev){
+  const el = $("#toast");
+  el.innerHTML = `${esc(text)}<button id="toastUndo">撤销</button>`;
+  el.classList.add("show"); clearTimeout(toast.t);
+  $("#toastUndo").onclick = () => { S[id] = prev; if (!Object.keys(prev).length) delete S[id]; save(STORE, S); pushState(); el.classList.remove("show"); renderAll(); };
+  toast.t = setTimeout(() => el.classList.remove("show"), 4000);
+}
+
+let inboxAll = false;
+function renderInbox(){
+  const el = $("#inbox");
+  const items = cardsAll().filter(c => c.category === "inbox" && !isDone(c))
+    .sort((a,b) => (a.level === b.level ? 0 : a.level === "focus" ? -1 : 1) || b.id.slice(-8).localeCompare(a.id.slice(-8)));
+  if (!items.length) { el.innerHTML = ""; return; }
+  const wasOpen = el.dataset.init ? el.open : true; el.dataset.init = 1;
+  const show = inboxAll ? items : items.slice(0, 6);
+  el.innerHTML = `<summary>📨 待回复与 @我 <span class="hint">不用 AI、按规则自动生成；你回复后下次更新会自动消失 · ${items.length} 条</span><span class="chev">›</span></summary>
+    <ul class="ibx">${show.map(c => { const t = c.evidence && c.evidence.length ? c.evidence[c.evidence.length - 1] : null;
+      return `<li data-ibq="${c.id}"><span class="${c.level === "focus" ? "dotf" : "doti"}" title="${c.level === "focus" ? "常联系 / 重要联系人" : "不常联系"}"></span>
+        <span style="min-width:0"><span class="t">${esc(c.title)}</span><div class="snip">${t ? esc((t[1] ? t[1] + "：" : "") + t[2]) : ""}</div></span>
+        <span class="from">${esc((t && t[0] || c.date).slice(5, 16))}</span>
+        <button class="btn sm" data-ibq="${c.id}">查看</button><button class="btn sm" data-ibdone="${c.id}">已处理</button></li>`; }).join("")}
+    ${items.length > 6 ? `<li class="more" data-ibmore><span></span><span class="t" style="grid-column:2/-1;color:var(--accent)">${inboxAll ? "收起" : `展开其余 ${items.length - 6} 条`}</span></li>` : ""}</ul>`;
+  el.open = wasOpen;
+}
+
+/* ---------- 朋友圈视图 ---------- */
+const SNS_TAG = {work: "工作变动", music: "音乐/演出", venture: "生意/项目", people: "人生大事"};
+const SNS_CAT = {work: "work", music: "music", venture: "venture", people: "people"};
+let snsCache = {key: "", data: null}, snsFilter = "worth", snsAuthor = "";
+function snsRange(){
+  const pt = periodText();
+  if (pt.start) return {start: pt.start, end: pt.end > TODAY ? TODAY : pt.end, txt: pt.txt};
+  const d = new Date(); d.setDate(d.getDate() - 30);
+  return {start: fmt(d), end: TODAY, txt: "最近 30 天"};
+}
+function avColor(name){ let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360; return `hsl(${h} 45% 48%)`; }
+function snsCardOf(it){
+  return D.cards.find(c => c.chats.includes("朋友圈·" + it.name) && (c.evidence || []).some(e => (e[0] || "").slice(0,16) === it.time));
+}
+async function renderSns(force){
+  const box = $("#content");
+  if (!SV) { box.innerHTML = `<div class="empty">朋友圈要实时读取微信本地数据，请从「微信洞察」App 打开（右上角显示「已连接」）。</div>`; return; }
+  const r = snsRange(), key = r.start + r.end;
+  if (force || snsCache.key !== key) {
+    box.innerHTML = `<div class="help" style="padding:20px 0">正在读取 ${esc(r.txt)} 的朋友圈…</div>`;
+    let data;
+    try { data = await api("/api/sns", {start: r.start, end: r.end}); }
+    catch (e) { box.innerHTML = `<div class="notice err">读取失败：${esc(e.message)}</div>`; return; }
+    const now = snsRange();
+    if (pref.view !== "sns" || now.start + now.end !== key) return;   // 期间切换了周期：丢弃旧结果，交给新请求渲染
+    snsCache = {key, data};
+  }
+  const d = snsCache.data, q = $("#q").value.trim().toLowerCase();
+  let items = d.items.filter(it => (!snsAuthor || it.name === snsAuthor));
+  if (q) items = items.filter(it => (it.name + it.text + it.title + it.finder + it.loc).toLowerCase().includes(q));
+  const worthCount = d.items.filter(it => !it.ad && (it.tags.length || snsCardOf(it))).length;
+  if (snsFilter === "worth") items = items.filter(it => !it.ad && (it.tags.length || snsCardOf(it)));
+  else if (snsFilter === "noad") items = items.filter(it => !it.ad);
+  const hl = t => { let h = esc(t || ""); if (q) h = h.replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), m => `<mark>${m}</mark>`); return h; };
+  const groups = []; items.forEach(it => { const day = it.time.slice(0,10), g = groups[groups.length - 1]; if (g && g.day === day) g.items.push(it); else groups.push({day, items: [it]}); });
+  const cover = d.indexed ? Math.round(d.cached / d.indexed * 100) : 100;
+  box.innerHTML = `<div class="snsbar"><h2>朋友圈</h2><span class="help">${esc(r.txt)} · 有正文 ${d.cached} 条${d.indexed ? ` / 微信索引共 ${d.indexed} 条（覆盖约 ${cover}%）` : ""}</span>
+      <span class="spacer"></span><button class="btn sm" id="snsReload">⟳ 刷新</button></div>
+    <div class="snsbar">
+      <div class="opts">${[["worth", `值得看 ${worthCount}`], ["noad", "全部（隐藏广告）"], ["all", "全部"]].map(([k, l]) => `<button data-sf="${k}" class="${snsFilter === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      <select class="sel" id="snsAuthor"><option value="">所有好友</option>${d.authors.map(([n, c]) => `<option value="${esc(n)}" ${n === snsAuthor ? "selected" : ""}>${esc(n)}（${c}）</option>`).join("")}</select>
+      <span class="help">「值得看」= 命中人生大事、换工作、演出、项目等关键词，或已经做成卡片的；搜索框也能搜朋友圈</span></div>
+    ${cover < 60 ? `<div class="notice" style="max-width:820px;margin-bottom:12px">只有在<b>电脑版微信</b>里刷到过的朋友圈才有正文。想看得更全：在 Mac 微信里打开朋友圈往下刷一阵，再点「⟳ 刷新」。</div>` : ""}
+    <div class="snsfeed">${items.length ? groups.map(g => `<div class="sday">${dayTitle(g.day)}</div>` + g.items.map(it => { const card = snsCardOf(it);
+      return `<article class="sns ${it.ad ? "ad" : ""}" data-tid="${it.tid}"><div class="av" style="background:${avColor(it.name)}">${esc([...it.name][0] || "?")}</div><div>
+        <div class="hd"><b>${hl(it.name)}</b><span class="tm">${it.time.slice(11)}</span><span class="kd">${esc(it.kind)}</span>${it.tags.map(t => `<span class="tg">${SNS_TAG[t] || t}</span>`).join("")}${it.ad ? '<span class="kd">疑似广告</span>' : ""}</div>
+        ${it.text ? `<div class="tx">${hl(it.text)}</div>` : ""}
+        ${it.title || it.finder ? `<div class="lk">${it.title ? "🔗 " + hl(it.title) : ""}${it.finder ? "▶ 视频号 " + hl(it.finder) : ""}</div>` : ""}
+        ${it.loc ? `<div class="loc">📍 ${esc(it.loc)}</div>` : ""}
+        <div class="ft">${card ? `<button class="btn sm" data-go="${card.id}">✓ 已做成卡片 · 查看</button>` : `<button class="btn sm" data-snscard="${it.tid}">＋ 做成卡片</button>`}
+          <button class="btn sm" data-snsask="${it.tid}">⌕ 看 TA 最近的朋友圈 / 问 Claude</button></div></div></article>`; }).join("")).join("")
+      : `<div class="empty">这个范围里没有${snsFilter === "worth" ? "「值得看」的" : ""}朋友圈。${snsFilter === "worth" ? `<br><br><button class="btn" data-sf="noad">看全部</button>` : ""}</div>`}</div>`;
+}
+function renderAll(){ renderPeriods(); renderHead(); renderCarry(); renderInbox(); renderChips(); renderContent(); renderBatch(); save(PREF, pref);
+  $("#sub").textContent = `数据抽取至 ${D.extracted_until} · 共 ${D.cards.length} 张卡片 · 生成于 ${D.generated_at}`; }
+
+/* ---------- 选择 / 批量 ---------- */
+const sel = new Set();
+function renderBatch(){ $("#batch").classList.toggle("show", sel.size > 0); $("#batchN").textContent = `已选 ${sel.size} 张`; }
+
+/* ---------- 查询指令 ---------- */
+function describeFilters(){
+  const parts = [];
+  if (pref.levels.length) parts.push("级别：" + pref.levels.map(k => D.levels[k].name).join("、"));
+  if (pref.cats.length) parts.push("分类：" + pref.cats.map(k => D.categories[k].name).join("、"));
+  const sMap = {active:"未完成", open:"待处理", watch:"跟进中", done:"已完成", info:"仅参考"};
+  if (pref.status) parts.push("状态：" + sMap[pref.status]);
+  if ($("#fChat").value) parts.push("会话：" + $("#fChat").value);
+  if ($("#q").value.trim()) parts.push("关键词：" + $("#q").value.trim());
+  if ($("#fStar").checked) parts.push("仅星标");
+  return parts.join("；") || "无";
+}
+function periodText(){
+  if (pref.dim === "all") return {txt: "全部周期", start: null, end: null};
+  if (pref.dim === "week") { const [a,b] = weekRange(pref.period); const p = periodById(pref.period); return {txt: `周 · ${p ? p.label : pref.period}（${a} ~ ${b}）`, start: a, end: b}; }
+  if (pref.dim === "month") { const p = periodById(pref.period); const a = pref.period + "-01"; const e = new Date(parse(a).getFullYear(), parse(a).getMonth()+1, 0); return {txt: `月 · ${p ? p.label : pref.period}（${a} ~ ${fmt(e)}）`, start: a, end: fmt(e)}; }
+  return {txt: `日 · ${pref.period}`, start: pref.period, end: pref.period};
+}
+function myStateLines(ids){
+  const lines = [];
+  Object.entries(S).forEach(([id, v]) => {
+    if (ids && !ids.includes(id)) return;
+    const c = D.cards.find(x => x.id === id); if (!c) return;
+    const bits = [];
+    if (v.status && v.status !== c.status) bits.push({open:"待处理",watch:"跟进中",done:"已完成",info:"仅参考"}[v.status]);
+    if (v.star) bits.push("★");
+    if (v.note) bits.push("备注：" + v.note.replace(/\s+/g, " "));
+    if (bits.length) lines.push(`- ${id}「${c.title}」→ ${bits.join("；")}`);
+  });
+  return lines;
+}
+function buildQuery(cards, scopeTxt){
+  const pt = periodText();
+  const chats = [...new Set(cards.flatMap(c => (c.query && c.query.chats) || c.chats))];
+  const kws = [...new Set(cards.flatMap(c => (c.query && c.query.keywords) || []))];
+  const starts = cards.map(c => (c.query && c.query.start) || c.date), ends = cards.map(c => (c.query && c.query.end) || c.date);
+  let start = starts.length ? starts.sort()[0] : pt.start, end = ends.length ? ends.sort().reverse()[0] : pt.end;
+  if (end && end > TODAY) end = TODAY;
+  const ids = cards.map(c => c.id);
+  const state = myStateLines(ids);
+  const shq = s => `"${s.replace(/(["\\$`])/g, "\\$1")}"`;
+  const prompt = [
+    "请用本机的「微信洞察」工具帮我查询微信聊天数据，核对并更新卡片。",
+    "",
+    `【范围】${scopeTxt}`,
+    `【当前周期】${pt.txt}`,
+    `【当前筛选】${describeFilters()}`,
+    "",
+    `【关注卡片】（${cards.length} 张）`,
+    ...cards.slice(0, 40).map(c => `- ${c.id}〔${D.levels[c.level].name}·${D.categories[c.category].name}〕${c.title}${c.due ? `（截止 ${c.due}）` : ""}`),
+    ...(cards.length > 40 ? [`- ……另有 ${cards.length - 40} 张`] : []),
+    "",
+    "【建议查询范围】",
+    `- 会话：${chats.slice(0, 20).join("、") || "（按周期全部会话）"}`,
+    `- 关键词：${kws.slice(0, 20).join("、") || "（无）"}`,
+    `- 时间：${start || "?"} ~ ${end || "?"}`,
+    ...(state.length ? ["", "【我已处理 / 备注】", ...state] : []),
+    "",
+    "【我想知道】",
+    "（在这里写你的问题，例如：这件事最新进展到哪了？有没有我漏回的消息？）",
+    "",
+    "处理要求：查完后在 ~/wechat-insights/cards/ 对应周期的 JSON 里更新这些卡片（进展写进 summary/action，补 evidence，按需改 status/due），有新事项就新增卡片，然后运行 python3 ~/wechat-insights/build.py。",
+  ].join("\n");
+  const cmds = [];
+  if (start && end) cmds.push(`~/.wechat-cli/venv/bin/python ~/wechat-insights/extract.py --start ${start} --end ${end} --full ${chats.slice(0, 8).map(c => "--chat " + shq(c)).join(" ")}`);
+  kws.slice(0, 4).forEach(k => cmds.push(`~/.wechat-cli/venv/bin/wechat-cli search ${shq(k)}${start ? " --start-time " + start : ""} --limit 50 --format text`));
+  return {prompt, cmds: cmds.join("\n")};
+}
+function openQuery(cards, scopeTxt){
+  if (SV) return openLive(cards, scopeTxt);
+  openCopyQuery(cards, scopeTxt);
+}
+function openCopyQuery(cards, scopeTxt){
+  const q = buildQuery(cards, scopeTxt);
+  showModal("生成查询指令", `
+    <div class="help">把下面这段发给 Claude（Claude Code 里直接粘贴即可）。「我想知道」那段可以先改成你真正想问的。${SV ? "" : "<br>提示：从「微信洞察」App 打开，可以直接在页面里看原始消息、问 Claude，不用复制。"}</div>
+    <label class="f">给 Claude 的指令<textarea class="prompt" id="qPrompt">${esc(q.prompt)}</textarea></label>
+    <label class="f">参考命令（想自己在终端跑时用）<textarea id="qCmd">${esc(q.cmds)}</textarea></label>`,
+    [["复制命令", () => copy($("#qCmd").value)], ["复制指令", () => copy($("#qPrompt").value), true]]);
+}
+function openUpdate(){
+  if (SV) return openLiveUpdate();
+  openCopyUpdate();
+}
+function openCopyUpdate(){
+  const cur = isoWeek(parse(TODAY));
+  const opts = [
+    ["today", "今天", `--period day`, `${TODAY} 日报`],
+    ["week", "本周", `--period week`, `本周 ${cur}`],
+    ["lastweek", "上周", `--period week --ago 1`, "上周"],
+    ["month", "本月", `--period month`, `本月 ${TODAY.slice(0,7)}`],
+    ["since", "从上次抽取到现在", `--start ${D.extracted_until.slice(0,10)} --end ${TODAY}`, `${D.extracted_until.slice(0,10)} 起的增量`],
+  ];
+  let pick = "since";
+  const draw = () => {
+    const o = opts.find(x => x[0] === pick);
+    const state = myStateLines();
+    const prompt = [
+      `请更新「微信洞察」：${o[3]}。`,
+      "",
+      `1. 运行 ~/.wechat-cli/venv/bin/python ~/wechat-insights/extract.py ${o[2]}`,
+      "2. 阅读生成的 raw/<周期>/digest.md（私聊和我参与的群要完整读；旁观群只看信号消息）",
+      "3. 在 ~/wechat-insights/cards/ 新增或更新对应周期的 JSON：提炼有价值的信息、需要关注和重大事项；已有卡片保留原 id 并写入最新进展，已结束的标记 done",
+      "4. 私密或亲密关系类聊天不要做成卡片",
+      "5. 运行 python3 ~/wechat-insights/build.py，告诉我新增了哪些重大、需关注事项",
+      ...(state.length ? ["", "我在工具里已处理的状态（请同步到卡片 status）：", ...state] : []),
+    ].join("\n");
+    $("#mBody").innerHTML = `<div class="opts">${opts.map(x => `<button data-o="${x[0]}" class="${x[0] === pick ? "on" : ""}">${x[1]}</button>`).join("")}</div>
+      <div class="help">当前数据抽取到 <b>${esc(D.extracted_until)}</b>。选一个范围，把指令发给 Claude，它会抽取、提炼、重建卡片，然后刷新本页。</div>
+      <label class="f">给 Claude 的指令<textarea class="prompt" id="uPrompt">${esc(prompt)}</textarea></label>`;
+    $("#mBody").querySelectorAll("[data-o]").forEach(b => b.onclick = () => { pick = b.dataset.o; draw(); });
+  };
+  showModal("更新数据", "", [["复制指令", () => copy($("#uPrompt").value), true]]);
+  draw();
+}
+
+
+/* ---------- 页面内直接执行（本地服务模式） ---------- */
+const STEP_ICON = {pending: "○", running: "◌", done: "✓", error: "✕", skipped: "–"};
+function mdLite(t){
+  return esc(t).split(/\n{2,}/).map(par => "<p>" + par
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    .replace(/^#{1,4}\s*(.+)$/gm, "<b>$1</b>")
+    .replace(/^\s*[-*]\s+/gm, "• ")
+    .replace(/\n/g, "<br>") + "</p>").join("");
+}
+function authNotice(){
+  return `<div class="notice err"><b>Claude 命令行还没登录</b>，页面里的 AI 提炼和提问暂时用不了（拉取数据、看原始消息不受影响）。<br>
+    <b>推荐一劳永逸：</b>在「终端」运行 <code>bash ~/wechat-insights/setup_token.sh</code> <button class="btn sm" data-copycmd>复制</button>，按提示设置一年有效的长期令牌，之后不用再登录。<br>
+    完成后点 <button class="btn sm" data-recheck>重新检测登录</button>。也可以先选「不用 AI」更新，只生成待回复和 @我 提醒。</div>`;
+}
+function jobHTML(j){
+  const err = j.error ? (j.error.code === "auth" ? authNotice() : `<div class="notice err">${esc(j.error.message)}</div>`) : "";
+  const w = j.result && j.result.warning;
+  const warn = w ? (w.code === "auth" ? authNotice() : `<div class="notice err">${esc(w.message)}</div>`) + `<div class="notice">这次没用上 AI，已先生成规则提醒；抽取进度没往前推，下次 AI 可用时会把这段补上。</div>` : "";
+  const ex = j.result && j.result.extract;
+  let res = "";
+  if (ex) res += `<div class="res"><h4>本次拉取 · ${esc(ex.label)}</h4><ul>
+    <li>${ex.chats} 个会话，${ex.messages} 条消息（已排除公众号）</li>
+    ${ex.at_me.length ? `<li>有人 @你：${ex.at_me.map(esc).join("、")}</li>` : ""}
+    ${ex.sns && ex.sns.posts ? `<li>朋友圈 ${ex.sns.posts} 条（${ex.sns.authors} 位好友，仅电脑版微信里刷到过的）</li>` : ""}
+  </ul></div>`;
+  const r = j.result || {};
+  if (r.rules) res += `<div class="res"><h4>规则提醒（不用 AI）</h4><ul><li>待回复 / @我 / 朋友圈提醒：新增 ${r.rules.added.length}，更新 ${r.rules.changed.length}，你已回复而自动移除 ${r.rules.resolved.length}</li></ul></div>`;
+  if (r.added || r.changed) res += `<div class="res"><h4>卡片变化</h4><ul>
+    ${(r.added || []).map(c => `<li>新增 <a href="#" data-goto="${c.id}">${esc(c.id)} ${esc(c.title)}</a></li>`).join("")}
+    ${(r.changed || []).map(c => `<li>更新 <a href="#" data-goto="${c.id}">${esc(c.id)} ${esc(c.title)}</a></li>`).join("")}
+    ${!(r.added || []).length && !(r.changed || []).length ? "<li>没有新的值得记录的事项</li>" : ""}</ul></div>`;
+  if (r.summary) res += `<div class="answer">${mdLite(r.summary)}</div>`;
+  if (r.answer) res += `<div class="answer">${mdLite(r.answer)}</div>`;
+  const log = (j.log || []).slice(-60).map(l => `<div><span>${l.t}</span>${esc(l.text)}</div>`).join("");
+  return `<div class="steps">${j.steps.map(s => `<span class="stp ${s.status}">${STEP_ICON[s.status] || ""} ${esc(s.name)}</span>`).join("")}
+      <span class="help" style="align-self:center">${j.status === "running" ? "进行中 · " : ""}${j.elapsed}s</span></div>
+    ${err}${warn}${res}${log ? `<details ${j.status === "running" ? "open" : ""}><summary class="help" style="cursor:pointer">过程日志</summary><div class="jlog">${log}</div></details>` : ""}`;
+}
+async function followJob(id, box, onDone){
+  let j;
+  for (;;) {
+    try { j = await api("/api/jobs/" + id); } catch (e) { box.innerHTML = `<div class="notice err">和本地服务断开了：${esc(e.message)}</div>`; return; }
+    box.innerHTML = jobHTML(j);
+    const log = box.querySelector(".jlog"); if (log) log.scrollTop = log.scrollHeight;
+    setBadge();
+    if (j.status !== "running") { onDone && onDone(j); setBadge(); return j; }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+}
+async function setBadge(){
+  if (!SV) return;
+  try { SVS = await api("/api/status"); } catch (e) { SVS = null; }
+  const b = $("#svBadge");
+  if (!SVS) { b.className = "svb warn"; b.innerHTML = "<i></i>本地服务未响应"; return; }
+  if (SVS.running) { b.className = "svb run"; b.innerHTML = `<i></i>${esc(SVS.running.title)}中…`; return; }
+  if (SVS.claude.checking) { b.className = "svb run"; b.innerHTML = "<i></i>正在检测 Claude 登录…"; return; }
+  if (!SVS.claude.loggedIn) { b.className = "svb warn"; b.innerHTML = "<i></i>已连接 · Claude 未登录"; b.title = "在终端运行 claude auth login 后即可在页面里用 AI"; return; }
+  b.className = "svb on"; b.innerHTML = "<i></i>已连接"; b.title = "页面可以直接拉取数据、问 Claude";
+}
+function openLiveUpdate(){
+  const cur = isoWeek(parse(TODAY));
+  const opts = [["since", "从上次抽取到现在"], ["today", "今天"], ["week", `本周 ${cur}`], ["lastweek", "上周"], ["month", "本月"], ["custom", "自定义"]];
+  let pick = "since";
+  const draw = () => {
+    const cl = (SVS && SVS.claude) || {}, ol = (SVS && SVS.ollama) || {};
+    const loggedIn = !!cl.loggedIn;
+    if (!pref.provider) pref.provider = (SVS && SVS.provider) || "claude";
+    const pv = pref.provider;
+    const provs = [
+      ["claude", "Claude", loggedIn ? (cl.long_token ? "已登录 · 长期令牌" : "已登录") : "未登录", "提炼最准；聊天会发给 Anthropic 处理", true],
+      ["ollama", "本地模型", ol.ready ? `${esc(ol.model)} 就绪` : (ol.running ? `Ollama 已开，缺 ${esc(ol.model)}` : "未安装"), "完全离线、免登录；准确度比 Claude 低、速度看电脑", ol.ready],
+      ["none", "不用 AI", "随时可用", "几秒完成，只生成待回复、@我、朋友圈关键词提醒", true],
+    ];
+    $("#mBody").innerHTML = `
+      <div class="help">当前数据抽取到 <b>${esc(D.extracted_until)}</b>。选范围和提炼方式后点「开始更新」：先从微信拉取聊天和朋友圈，按规则生成提醒，再按所选方式提炼成卡片，完成后刷新页面。</div>
+      <div class="opts">${opts.map(o => `<button data-o="${o[0]}" class="${o[0] === pick ? "on" : ""}">${o[1]}</button>`).join("")}</div>
+      ${pick === "custom" ? `<div class="row2">从 <input type="date" id="uStart" value="${D.extracted_until.slice(0,10)}"> 到 <input type="date" id="uEnd" value="${TODAY}"></div>` : ""}
+      <div class="help" style="margin-top:4px">提炼方式</div>
+      <div class="opts">${provs.map(([k, n, stt, desc, ok]) => `<button data-pv="${k}" class="${k === pv ? "on" : ""}" title="${desc}" ${ok || k === pv ? "" : "style='opacity:.55'"}>${n}<small style="display:block;font-size:11px;opacity:.75">${stt}</small></button>`).join("")}</div>
+      <div class="help">${provs.find(p => p[0] === pv)[3]}</div>
+      ${pv === "claude" && loggedIn ? `<label class="toggle"><input type="checkbox" id="uDeep"> 深度模式：让 Claude 逐个读写卡片文件，更细但要 3–8 分钟（适合整周、整月重建）</label>` : ""}
+      ${pv === "claude" && !loggedIn ? authNotice() : ""}
+      ${pv === "ollama" && !ol.ready ? `<div class="notice">本地模型需要先装 <b>Ollama</b>（ollama.com 下载），再在终端运行 <code>ollama pull ${esc(ol.model || "qwen3:8b")}</code>（约 5GB）。16GB 内存以上的 Apple 芯片 Mac 跑 8B 模型没问题。装好后重新打开这个窗口。</div>` : ""}
+      <div id="uJob"></div>`;
+    $("#mBody").querySelectorAll("[data-o]").forEach(b => b.onclick = () => { pick = b.dataset.o; draw(); });
+    $("#mBody").querySelectorAll("[data-pv]").forEach(b => b.onclick = () => { pref.provider = b.dataset.pv; save(PREF, pref); draw(); });
+  };
+  showModal("更新数据", "", [["复制指令（发给 Claude Code）", () => { closeModal(); openCopyUpdate(); }], ["开始更新", start, true]]);
+  $(".dialog").classList.add("wide");
+  setBadge().then(draw); draw();
+  async function start(){
+    const body = {mode: pick, since: D.extracted_until, provider: pref.provider || "claude", deep: !!($("#uDeep") && $("#uDeep").checked), state: S};
+    if (pick === "custom") { body.start = $("#uStart").value; body.end = $("#uEnd").value; }
+    const box = $("#uJob");
+    try {
+      const j = await api("/api/update", body);
+      $("#mFoot").innerHTML = '<button class="btn" data-cancel>中止</button>';
+      $("#mFoot [data-cancel]").onclick = () => api("/api/cancel", {}).catch(() => {});
+      followJob(j.id, box, done => {
+        $("#mFoot").innerHTML = "";
+        const ok = done.status === "done";
+        const b = document.createElement("button"); b.className = "btn primary"; b.textContent = ok ? "刷新查看" : "关闭";
+        b.onclick = () => ok ? location.reload() : closeModal();
+        $("#mFoot").appendChild(b);
+      });
+    } catch (e) {
+      box.innerHTML = e.status === 409 ? `<div class="notice">已有任务在运行，稍等它结束。</div>` : `<div class="notice err">${esc(e.message)}</div>`;
+    }
+  }
+}
+function highlight(text, kws){
+  let h = esc(text);
+  kws.filter(Boolean).forEach(k => { const e = esc(k).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); h = h.replace(new RegExp(e, "gi"), m => `<mark>${m}</mark>`); });
+  return h;
+}
+function msgHTML(res, kws){
+  if (!res.chats.length) return `<div class="help">没有找到会话${res.missing && res.missing.length ? "：" + res.missing.map(esc).join("、") : ""}</div>`;
+  return (res.missing && res.missing.length ? `<div class="help">找不到这些会话：${res.missing.map(esc).join("、")}</div>` : "") +
+    res.chats.map(c => `<div class="mchat"><h5>💬 ${esc(c.chat)} <small>${c.count} 条${c.count > c.lines.length ? `，显示最近 ${c.lines.length} 条` : ""}</small></h5><ol>${
+      c.lines.length ? c.lines.map(l => { const m = l.match(/^\[(.{16})\]\s(?:([^:：]{1,40}):\s)?([\s\S]*)$/); if (!m) return `<li>${esc(l)}</li>`;
+        const me = m[2] === "me"; return `<li class="${me ? "me" : ""}"><span class="tm">${m[1].slice(5)}</span>${m[2] ? `<span class="who2">${me ? "我" : esc(m[2])}</span>` : ""}${highlight(m[3], kws)}</li>`; }).join("")
+      : '<li class="help">这个时间段内没有消息</li>'}</ol></div>`).join("");
+}
+function openLive(cards, scopeTxt){
+  const chats = [...new Set(cards.flatMap(c => (c.query && c.query.chats) || c.chats))];
+  const kws = [...new Set(cards.flatMap(c => (c.query && c.query.keywords) || []))];
+  const starts = cards.map(c => (c.query && c.query.start) || c.date).sort();
+  const pt = periodText();
+  let start = starts[0] || pt.start || TODAY, end = TODAY;
+  const one = cards.length === 1 ? cards[0] : null;
+  showModal(one ? "查询 · " + one.title : "查询 · " + scopeTxt, `
+    <div class="row2"><span class="help">${esc(scopeTxt)} · ${cards.length} 张卡片 · 会话 ${chats.length} 个</span></div>
+    <div class="row2">时间 <input type="date" id="lStart" value="${start}"> ~ <input type="date" id="lEnd" value="${end}">
+      <label class="toggle"><input type="checkbox" id="lKw"> 只看含关键词的消息</label>
+      <span class="help">${kws.length ? "关键词：" + kws.map(esc).join("、") : ""}</span>
+      <button class="btn sm" id="lLoad">刷新原始消息</button></div>
+    <details id="lMsgWrap" open><summary class="help" style="cursor:pointer">原始消息（实时读取微信本地数据库）</summary><div class="msgs" id="lMsgs"><div class="help">读取中…</div></div></details>
+    <label class="f">问 Claude<textarea class="prompt" id="lQ" style="min-height:90px" placeholder="例如：这件事最新进展到哪了？有没有我漏回或要跟进的？（留空就按这个问）"></textarea></label>
+    <label class="toggle"><input type="checkbox" id="lEdit"> 允许 Claude 顺便把新进展写进卡片</label>
+    <div id="lJob"></div>`,
+    [["复制指令（发给 Claude Code）", () => { closeModal(); openCopyQuery(cards, scopeTxt); }], ["问 Claude", ask, true]]);
+  $(".dialog").classList.add("wide");
+  if (chats.length > 12) $("#lKw").checked = true;
+  const load = async () => {
+    const box = $("#lMsgs"); box.innerHTML = '<div class="help">读取中…</div>';
+    try {
+      const res = await api("/api/messages", {chats: chats.slice(0, 20), start: $("#lStart").value, end: $("#lEnd").value, keywords: $("#lKw").checked ? kws : [], limit: 300});
+      box.innerHTML = msgHTML(res, kws);
+      box.querySelectorAll(".mchat ol").forEach(ol => ol.scrollTop = ol.scrollHeight);
+    } catch (e) { box.innerHTML = `<div class="notice err">读取失败：${esc(e.message)}</div>`; }
+  };
+  $("#lLoad").onclick = load; $("#lKw").onchange = load;
+  if (chats.length) load(); else $("#lMsgs").innerHTML = '<div class="help">这些卡片没有关联会话</div>';
+  async function ask(){
+    const box = $("#lJob");
+    if (SVS && SVS.claude && !SVS.claude.loggedIn) { box.innerHTML = authNotice(); return; }
+    const allow = $("#lEdit").checked;
+    try {
+      const j = await api("/api/ask", {question: $("#lQ").value, chats: chats.slice(0, 20), keywords: kws, start: $("#lStart").value, end: $("#lEnd").value, allow_edit: allow, state: S,
+        cards: cards.slice(0, 40).map(c => `${c.id}〔${D.levels[c.level].name}·${D.categories[c.category].name}〕${c.title}（${c.period}）`)});
+      $("#lMsgWrap").open = false;
+      followJob(j.id, box, done => { if (done.status === "done" && allow && (done.result.changed || []).length) {
+        const b = document.createElement("button"); b.className = "btn"; b.textContent = "刷新查看卡片变化"; b.onclick = () => location.reload(); $("#mFoot").prepend(b); } });
+    } catch (e) { box.innerHTML = e.status === 409 ? `<div class="notice">已有任务在运行，稍等它结束。</div>` : `<div class="notice err">${esc(e.message)}</div>`; }
+  }
+}
+
+/* ---------- modal / toast / 复制 ---------- */
+function showModal(title, body, actions){
+  $(".dialog").classList.remove("wide");
+  $("#mTitle").textContent = title; $("#mBody").innerHTML = body;
+  $("#mFoot").innerHTML = ""; actions.forEach(([l, fn, primary]) => { const b = document.createElement("button"); b.className = "btn" + (primary ? " primary" : ""); b.textContent = l; b.onclick = fn; $("#mFoot").appendChild(b); });
+  $("#modal").classList.add("show");
+}
+const closeModal = () => $("#modal").classList.remove("show");
+function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 1600); }
+async function copy(text){
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  toast("已复制");
+}
+
+/* ---------- 事件 ---------- */
+$("#dimSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; pref.dim = b.dataset.d; pref.period = null; renderAll(); };
+$("#periods").onclick = e => { const b = e.target.closest("[data-p]"); if (!b) return; pref.period = b.dataset.p; renderAll(); };
+$("#viewSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; pref.view = b.dataset.v; renderAll(); };
+$("#lvChips").onclick = e => { const b = e.target.closest("[data-lv]"); if (!b) return; const k = b.dataset.lv; pref.levels = pref.levels.includes(k) ? pref.levels.filter(x => x !== k) : [...pref.levels, k]; renderAll(); };
+$("#catChips").onclick = e => { const b = e.target.closest("[data-cat]"); if (!b) return; const k = b.dataset.cat; pref.cats = pref.cats.includes(k) ? pref.cats.filter(x => x !== k) : [...pref.cats, k]; renderAll(); };
+$("#fStatus").value = pref.status;
+$("#fStatus").onchange = e => { pref.status = e.target.value; renderAll(); };
+["#fChat", "#fStar"].forEach(s => $(s).onchange = () => { renderHead(); renderContent(); });
+$("#q").oninput = () => { clearTimeout(renderContent.t); renderContent.t = setTimeout(renderContent, 160); };
+$("#phead").onclick = e => { const k = e.target.closest("[data-k]"); if (!k) return;
+  const m = k.dataset.k; pref.cats = [];
+  if (m === "major" || m === "focus") { pref.levels = [m]; pref.status = "active"; }
+  else if (m === "todo") { pref.levels = []; pref.status = "open"; }
+  else { pref.dim = "all"; pref.levels = []; pref.status = "active"; pref.view = "timeline"; }
+  $("#fStatus").value = pref.status; renderAll(); };
+
+function goTo(id){
+  const c = D.cards.find(x => x.id === id); if (!c) return;
+  if (isDone(c)) { pref.view = "done"; renderAll(); const row = document.querySelector(`[data-dexp="${id}"]`);
+    if (row) { row.click(); row.scrollIntoView({behavior: "smooth", block: "center"}); } return; }
+  let el = document.getElementById("card-" + id);
+  if (!el) { pref.view = "cards"; pref.levels = []; pref.cats = []; pref.status = ""; $("#fStatus").value = ""; $("#q").value = ""; $("#fChat").value = ""; $("#fStar").checked = false;
+    if (c.rollup) { pref.dim = "month"; pref.period = c.date.slice(0,7); } else { pref.dim = "week"; pref.period = isoWeek(parse(c.date)); }
+    renderAll(); el = document.getElementById("card-" + id); }
+  if (el) { el.scrollIntoView({behavior: "smooth", block: "center"}); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-copycmd]")) { copy(e.target.closest(".notice").querySelector("code").textContent); return; }
+  if (e.target.closest("[data-recheck]")) { const b = e.target.closest("[data-recheck]"); b.textContent = "检测中…"; b.disabled = true;
+    api("/api/claude-check", {}).then(async () => { for (let i = 0; i < 40; i++) { await new Promise(r => setTimeout(r, 1500)); await setBadge(); if (SVS && !SVS.claude.checking) break; }
+      b.disabled = false; b.textContent = SVS && SVS.claude.loggedIn ? "✓ 已可用，关闭窗口重试" : "仍未登录，再检测一次"; }); return; }
+  const gt = e.target.closest("[data-goto]"); if (gt) { e.preventDefault(); location.hash = gt.dataset.goto; location.reload(); return; }
+  if (e.target.closest("[data-more]")) { carryAll = !carryAll; renderCarry(); return; }
+  const sf = e.target.closest("[data-sf]"); if (sf) { snsFilter = sf.dataset.sf; renderSns(); return; }
+  if (e.target.closest("#snsReload")) { renderSns(true); return; }
+  const sc = e.target.closest("[data-snscard]"); if (sc) { const it = snsCache.data.items.find(x => x.tid === sc.dataset.snscard); if (!it) return;
+    sc.disabled = true; sc.textContent = "保存中…";
+    api("/api/sns/card", {item: it, category: SNS_CAT[it.tags[0]] || "people"}).then(r => { toast(r.ok ? "已做成卡片" : "保存失败"); if (r.ok) setTimeout(() => location.reload(), 500); })
+      .catch(err => { sc.disabled = false; sc.textContent = "＋ 做成卡片"; toast("保存失败：" + err.message); }); return; }
+  const sa = e.target.closest("[data-snsask]"); if (sa) { const it = snsCache.data.items.find(x => x.tid === sa.dataset.snsask); if (!it) return;
+    const r = snsRange(); const ch = "朋友圈·" + it.name;
+    openQuery([{id: "朋友圈", level: "info", category: "people", title: `${it.name} 的朋友圈`, period: "朋友圈", date: it.time.slice(0,10), chats: [ch], people: [it.name], tags: [], evidence: [], query: {chats: [ch], keywords: [], start: r.start, end: r.end}}], `${it.name} 的朋友圈`); return; }
+  if (e.target.closest("[data-ibmore]")) { inboxAll = !inboxAll; renderInbox(); return; }
+  const ibd = e.target.closest("[data-ibdone]"); if (ibd) { const prev = setStatus(ibd.dataset.ibdone, "done"); renderInbox(); renderHead(); undoToast("已处理", ibd.dataset.ibdone, prev); return; }
+  const ibq = e.target.closest("[data-ibq]"); if (ibq) { const c = D.cards.find(x => x.id === ibq.dataset.ibq); if (c) openQuery([c], "提醒 · " + c.title); return; }
+  const ud = e.target.closest("[data-undone]"); if (ud) { e.stopPropagation(); const prev = setStatus(ud.dataset.undone, "open"); renderAll(); undoToast("已放回待处理", ud.dataset.undone, prev); return; }
+  const dx = e.target.closest("[data-dexp]"); if (dx && !e.target.closest(".dexp")) { const id = dx.dataset.dexp, box = document.getElementById("dexp-" + id);
+    if (box.hidden) { box.innerHTML = cardHTML(D.cards.find(x => x.id === id)); box.hidden = false; } else { box.hidden = true; box.innerHTML = ""; } return; }
+  const go = e.target.closest("[data-go]"); if (go) { goTo(go.dataset.go); return; }
+  if (e.target.closest("#clearF")) { pref.levels = []; pref.cats = []; pref.status = ""; $("#fStatus").value = ""; $("#q").value = ""; $("#fChat").value = ""; $("#fStar").checked = false; renderAll(); return; }
+  const tq = e.target.closest("[data-tq]"); if (tq) { const t = tq.dataset.tq; openQuery(cardsAll().filter(c => (c.thread || "_") === t), "线索「" + (D.threads[t] || "未归类") + "」的全部卡片"); return; }
+  const card = e.target.closest(".card"); if (!card) return;
+  const id = card.dataset.id, c = D.cards.find(x => x.id === id);
+  const sb = e.target.closest(".st button");
+  if (sb) {
+    const s = sb.dataset.s, prev = setStatus(id, s);
+    renderHead(); renderCarry(); renderPeriods(); renderChips(); $("#doneCnt").textContent = cardsAll().filter(isDone).length || "";
+    if (s === "done" && pref.view !== "done") {
+      card.classList.add("leaving"); setTimeout(() => { card.remove(); if (!$("#content .card")) renderContent(); }, 260);
+      undoToast("已完成，收进「已完成」", id, prev);
+    } else if (pref.view === "done" && s !== "done") { renderContent(); undoToast("已恢复为" + ({open:"待处理",watch:"跟进",info:"参考"}[s]), id, prev); }
+    else card.outerHTML = cardHTML(c);
+    return;
+  }
+  const act = e.target.closest("[data-act]"); if (!act) return;
+  if (act.dataset.act === "star") { setState(id, {star: !starred(c)}); card.outerHTML = cardHTML(c); }
+  else if (act.dataset.act === "note") { card.classList.add("edit-note"); card.querySelector(".note").focus(); }
+  else if (act.dataset.act === "query") openQuery([c], `单张卡片 ${id}`);
+  else if (act.dataset.act === "pick") { act.checked ? sel.add(id) : sel.delete(id); card.classList.toggle("sel", act.checked); renderBatch(); }
+});
+document.addEventListener("change", e => { if (e.target.id === "snsAuthor") { snsAuthor = e.target.value; renderSns(); return; } });
+document.addEventListener("change", e => { const n = e.target.closest(".note"); if (!n) return; const id = n.closest(".card").dataset.id; setState(id, {note: n.value.trim()}); toast("备注已保存"); });
+
+$("#btnQuery").onclick = () => {
+  const list = cardsAll().filter(c => inPeriod(c) && matchFilters(c)).sort(rankSort);
+  openQuery(list, sel.size ? "当前筛选结果（如只想查选中的，用底部「生成查询指令」）" : "当前筛选结果");
+};
+$("#btnUpdate").onclick = openUpdate;
+$("#bQuery").onclick = () => openQuery(D.cards.filter(c => sel.has(c.id)).sort(rankSort), `手动选中的 ${sel.size} 张卡片`);
+$("#bDone").onclick = () => { const n = sel.size; sel.forEach(id => setStatus(id, "done")); sel.clear(); renderAll(); toast(`${n} 张已完成，收进「已完成」`); };
+$("#bClear").onclick = () => { sel.clear(); renderAll(); };
+$("#modal").onclick = e => { if (e.target.id === "modal" || e.target.closest("[data-close]")) closeModal(); };
+
+$("#btnMore").onclick = e => { e.stopPropagation(); $("#menu").classList.toggle("open"); };
+document.addEventListener("click", e => { if (!e.target.closest("#menu")) $("#menu").classList.remove("open"); });
+$("#mPrivate").checked = pref.showPrivate;
+$("#mPrivate").onchange = e => { pref.showPrivate = e.target.checked; renderAll(); };
+$("#mTheme").onclick = () => { const dark = matchMedia("(prefers-color-scheme: dark)").matches; const now = document.documentElement.dataset.theme || (dark ? "dark" : "light");
+  pref.theme = now === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = pref.theme; save(PREF, pref); };
+$("#mExport").onclick = () => {
+  const blob = new Blob([JSON.stringify({exported_at: new Date().toISOString(), state: S}, null, 1)], {type: "application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "wechat-insights-state.json"; a.click(); URL.revokeObjectURL(a.href);
+  toast("已导出，可放到 ~/wechat-insights/state.json 供 Claude 读取");
+};
+$("#mImport").onclick = () => $("#fileImport").click();
+$("#fileImport").onchange = async e => { const f = e.target.files[0]; if (!f) return;
+  try { const j = JSON.parse(await f.text()); S = Object.assign({}, S, j.state || j); save(STORE, S); renderAll(); toast("已导入"); } catch (err) { toast("文件格式不对"); } e.target.value = ""; };
+$("#mReset").onclick = () => { if (confirm("清空本机记录的状态、星标和备注？卡片本身不受影响。")) { S = {}; save(STORE, S); renderAll(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { closeModal(); $("#menu").classList.remove("open"); }
+  if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $("#q").focus(); }
+});
+
+renderAll();
+if (SV) { api("/api/state").then(r => { const remote = (r && r.state) || {}; let changed = false;
+    Object.entries(remote).forEach(([id, v]) => { if (!S[id] || (v.updated || "") > (S[id].updated || "")) { S[id] = v; changed = true; } });
+    if (changed) { migrateState(); renderAll(); } pushState(); }).catch(() => {});
+  setBadge(); setInterval(setBadge, 20000);
+  api("/api/status").then(s => { if (s.running) { openLiveUpdate(); followJob(s.running.id, $("#uJob")); } }).catch(() => {}); }
+else $("#svBadge").innerHTML = '<span title="从「微信洞察」App 打开可直接在页面里更新数据、问 Claude">离线模式</span>';
+if (location.hash.length > 1) { const id = location.hash.slice(1); history.replaceState(null, "", location.pathname); setTimeout(() => goTo(id), 50); }
+})();
+</script>
+</body>
+</html>

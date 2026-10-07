@@ -1,0 +1,35 @@
+#!/bin/bash
+# 微信洞察 · 启动器（App 的可执行文件）
+# 程序在 App 里只读运行，用户数据（卡片、状态、朋友圈）放在「应用程序支持」目录。
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+APP="$(cd "$HERE/../.." && pwd)"              # …/微信洞察.app
+RES="$APP/Contents/Resources"
+PY="$RES/py/bin/python3.12"
+CODE="$RES/app"
+PORT=8765
+# 数据目录：如果本机已有老的 ~/wechat-insights（作者自用），就沿用它，不丢已有卡片；
+# 否则放到「应用程序支持」（给朋友的全新安装）。
+if [ -d "$HOME/wechat-insights/cards" ]; then
+  export WXI_HOME="$HOME/wechat-insights"
+else
+  export WXI_HOME="$HOME/Library/Application Support/微信洞察"
+fi
+mkdir -p "$WXI_HOME"
+LOG="$WXI_HOME/launch.log"
+
+ping_ok(){ curl -s -m 2 "http://127.0.0.1:$PORT/api/ping" >/dev/null 2>&1; }
+
+# 首次使用：还没有微信密钥，或还没初始化数据目录 → 跑引导
+if [ ! -f "$HOME/.wechat-cli/all_keys.json" ] || [ ! -f "$WXI_HOME/config.json" ]; then
+  "$RES/setup.sh" "$RES" || exit 0
+  # 引导中途退出（没拿到密钥）就不往下走
+  [ -f "$HOME/.wechat-cli/all_keys.json" ] || exit 0
+fi
+
+# 起本地服务（只监听 127.0.0.1）
+if ! ping_ok; then
+  nohup "$PY" "$CODE/server.py" >"$LOG" 2>&1 &
+  for i in $(seq 1 40); do sleep 0.3; ping_ok && break; done
+fi
+open "http://127.0.0.1:$PORT/"
