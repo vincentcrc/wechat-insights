@@ -413,6 +413,8 @@ function doneAt(c){
   return c.status === "done" ? (c.done_at || c.date + "T00:00:00") : "";
 }
 const isDone = c => st(c) === "done";
+// 待回复/@我 是临时提醒：做完（或回复了）就不再显示，也不进「已完成」
+const doneCards = () => cardsAll().filter(c => isDone(c) && c.category !== "inbox");
 function setStatus(id, s){
   const prev = Object.assign({}, S[id]);
   setState(id, s === "done" ? {status: "done", done_at: new Date().toISOString()} : {status: s, done_at: null});
@@ -606,8 +608,8 @@ function renderContent(){
   document.querySelectorAll("#viewSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === pref.view));
   document.body.classList.toggle("v-done", pref.view === "done");
   document.body.classList.toggle("v-sns", pref.view === "sns");
-  if (pref.view === "sns") { $("#doneCnt").textContent = cardsAll().filter(isDone).length || ""; return renderSns(); }
-  $("#doneCnt").textContent = cardsAll().filter(isDone).length || "";
+  if (pref.view === "sns") { $("#doneCnt").textContent = doneCards().length || ""; return renderSns(); }
+  $("#doneCnt").textContent = doneCards().length || "";
   if (pref.view === "done") return renderDone();
   const list = cardsAll().filter(c => (pref.view === "threads" || inPeriod(c)) && matchFilters(c, {keepDone: pref.view === "threads"}));
   const box = $("#content");
@@ -641,9 +643,9 @@ function dayTitle(day){
 }
 function renderDone(){
   const box = $("#content");
-  const list = cardsAll().filter(c => isDone(c) && matchFilters(c, {keepDone: true, ignoreStatus: true}))
+  const list = doneCards().filter(c => matchFilters(c, {keepDone: true, ignoreStatus: true}))
     .map(c => ({c, at: doneAt(c)})).sort((a,b) => (b.at || "").localeCompare(a.at || ""));
-  const total = cardsAll().filter(isDone).length;
+  const total = doneCards().length;
   if (!total) { box.innerHTML = `<div class="donehead"><h2>已完成</h2></div><div class="empty">还没有完成的卡片。<br>在卡片底部点「完成」，它就会收进这里。</div>`; return; }
   const groups = [];
   list.forEach(x => { const f = fmtDoneTime(x.at); x.tm = f.tm; const g = groups[groups.length - 1];
@@ -1097,7 +1099,7 @@ document.addEventListener("click", e => {
   const sb = e.target.closest(".st button");
   if (sb) {
     const s = sb.dataset.s, prev = setStatus(id, s);
-    renderHead(); renderCarry(); renderPeriods(); renderChips(); $("#doneCnt").textContent = cardsAll().filter(isDone).length || "";
+    renderHead(); renderCarry(); renderPeriods(); renderChips(); $("#doneCnt").textContent = doneCards().length || "";
     if (s === "done" && pref.view !== "done") {
       card.classList.add("leaving"); setTimeout(() => { card.remove(); if (!$("#content .card")) renderContent(); }, 260);
       undoToast("已完成，收进「已完成」", id, prev);
