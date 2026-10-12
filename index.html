@@ -924,12 +924,13 @@ function openLiveUpdate(){
   const opts = [["since", "从上次抽取到现在"], ["today", "今天"], ["week", `本周 ${cur}`], ["lastweek", "上周"], ["month", "本月"], ["custom", "自定义"]];
   let pick = "since";
   const draw = () => {
-    const cl = (SVS && SVS.claude) || {}, ol = (SVS && SVS.ollama) || {};
+    const cl = (SVS && SVS.claude) || {}, ol = (SVS && SVS.ollama) || {}, ds = (SVS && SVS.deepseek) || {};
     const loggedIn = !!cl.loggedIn;
     if (!pref.provider) pref.provider = (SVS && SVS.provider) || "claude";
     const pv = pref.provider;
     const provs = [
       ["claude", "Claude", loggedIn ? (cl.long_token ? "已登录 · 长期令牌" : "已登录") : "未登录", "提炼最准；聊天会发给 Anthropic 处理", true],
+      ["deepseek", "DeepSeek", ds.configured ? `${esc(ds.model || "deepseek-chat")} 就绪` : "未配置 API Key", "便宜、国内直连、免代理；聊天会发给 DeepSeek 处理", ds.configured],
       ["ollama", "本地模型", ol.ready ? `${esc(ol.model)} 就绪` : (ol.running ? `Ollama 已开，缺 ${esc(ol.model)}` : "未安装"), "完全离线、免登录；准确度比 Claude 低、速度看电脑", ol.ready],
       ["none", "不用 AI", "随时可用", "几秒完成，只生成待回复、@我、朋友圈关键词提醒", true],
     ];
@@ -943,6 +944,7 @@ function openLiveUpdate(){
       ${pv === "claude" && loggedIn ? `<label class="toggle"><input type="checkbox" id="uDeep"> 深度模式：让 Claude 逐个读写卡片文件，更细但要 3–8 分钟（适合整周、整月重建）</label>` : ""}
       ${pv === "claude" && !loggedIn ? authNotice() : ""}
       ${pv === "ollama" && !ol.ready ? `<div class="notice">本地模型需要先装 <b>Ollama</b>（ollama.com 下载），再在终端运行 <code>ollama pull ${esc(ol.model || "qwen3:8b")}</code>（约 5GB）。16GB 内存以上的 Apple 芯片 Mac 跑 8B 模型没问题。装好后重新打开这个窗口。</div>` : ""}
+      ${pv === "deepseek" && !ds.configured ? `<div class="notice">DeepSeek 需要先配置 API Key：在 <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a> 申请，然后在「终端」运行 <code>bash setup_deepseek.sh</code> <button class="btn sm" data-copycmd>复制</button>，把 Key 存进钥匙串（也可直接填进 config.json 的 deepseek_api_key）。配置完重新打开本窗口即可。</div>` : ""}
       <div id="uJob"></div>`;
     $("#mBody").querySelectorAll("[data-o]").forEach(b => b.onclick = () => { pick = b.dataset.o; draw(); });
     $("#mBody").querySelectorAll("[data-pv]").forEach(b => b.onclick = () => { pref.provider = b.dataset.pv; save(PREF, pref); draw(); });

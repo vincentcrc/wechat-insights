@@ -25,9 +25,10 @@
 - **📨 待回复与 @我**：私聊里对方最后发言、群里有人 @你，自动生成提醒；你回复后自动消失。不需要 AI。
 - **朋友圈**：按周期浏览好友动态，筛选「值得看」（换工作、结婚、开业、求助……）、隐藏广告、按好友过滤，一键做成卡片。
 - **页面内操作**：直接在页面里拉取最新数据、查看原始消息、向 Claude 提问。
-- **提炼方式三选一**：
+- **提炼方式四选一**：
   - `不用 AI`（默认）：几秒完成，只做规则提醒，完全离线。
   - `Claude`：提炼最准；需要你自己的 Claude 账号和 [Claude Code](https://claude.com/claude-code) 命令行。
+  - `DeepSeek`：便宜、国内直连免代理；需要 [DeepSeek](https://platform.deepseek.com) 的 API Key（聊天会发给 DeepSeek 处理）。
   - `本地模型`：通过 [Ollama](https://ollama.com) 运行，完全离线。
 
 ## 运行要求
@@ -90,6 +91,7 @@ bash build_pkg.sh            # 产物：dist/微信洞察-1.0.pkg
 | `CLAUDE.md` | 给 Claude 的卡片编写规则（深度模式） |
 | `pkg/` · `build_pkg.sh` | 安装包的启动器、首次引导和打包脚本 |
 | `setup_token.sh` | 把 Claude 长期令牌存进 macOS 钥匙串（可选） |
+| `setup_deepseek.sh` | 把 DeepSeek API Key 存进 macOS 钥匙串（可选） |
 
 ## 个人配置（config.json）
 
@@ -99,7 +101,8 @@ bash build_pkg.sh            # 产物：dist/微信洞察-1.0.pkg
 | `categories` / `threads` | 自定义卡片分类和线索；不写就用通用默认值 |
 | `inbox_skip` / `sns_skip` / `skip_chats` | 不生成提醒 / 不读朋友圈 / 不抽取的会话 |
 | `vip_chats` | 重要联系人，待回复提醒会提升级别 |
-| `ai_provider` | `none` / `claude` / `ollama` |
+| `ai_provider` | `none` / `claude` / `deepseek` / `ollama` |
+| `deepseek_api_key` / `deepseek_model` | DeepSeek 的 Key 和模型（默认 `deepseek-chat`）；Key 建议用 `setup_deepseek.sh` 存进钥匙串，不写进文件 |
 | `sns_keywords_extra` | 追加朋友圈「值得看」的关键词 |
 
 `config.json`、`cards/`、`raw/`、`state.json`、`data.js` 都是个人数据，已在 `.gitignore` 里排除。

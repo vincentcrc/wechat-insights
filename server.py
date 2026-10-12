@@ -195,6 +195,82 @@ def make_ollama_runner(job):
     return run
 
 
+# ---------------- DeepSeek（OpenAI 兼容云 API，国内直连，不走代理） ----------------
+
+DS_KC_SERVICE, DS_KC_ACCOUNT = "wechat-insights-deepseek", "api-key"
+DS_BASE = "https://api.deepseek.com/chat/completions"
+
+
+def deepseek_key():
+    """DeepSeek API Key：先读环境变量，再读 config.json，最后读钥匙串（setup_deepseek.sh 存的）。"""
+    k = os.environ.get("DEEPSEEK_API_KEY")
+    if k:
+        return k.strip()
+    k = extract.load_cfg().get("deepseek_api_key")
+    if k:
+        return k.strip()
+    try:
+        r = subprocess.run(["security", "find-generic-password", "-s", DS_KC_SERVICE, "-a", DS_KC_ACCOUNT, "-w"],
+                           capture_output=True, text=True, timeout=5)
+        t = r.stdout.strip()
+        return t if r.returncode == 0 and t else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def deepseek_status():
+    cfg = extract.load_cfg()
+    return {"configured": bool(deepseek_key()),
+            "model": cfg.get("deepseek_model", "deepseek-chat"),
+            "setup_cmd": "bash setup_deepseek.sh"}
+
+
+def _ds_opener():
+    """DeepSeek 在国内可直连；默认不走系统代理（除非 config 里写了 deepseek_proxy）。"""
+    import urllib.request
+    px = extract.load_cfg().get("deepseek_proxy")
+    handler = urllib.request.ProxyHandler({"http": px, "https": px} if px else {})
+    return urllib.request.build_opener(handler)
+
+
+def make_deepseek_runner(job):
+    """和 make_runner 同样的接口：(prompt, extra, timeout) -> (text, cost)。走 DeepSeek 云 API。"""
+    import urllib.request
+    import urllib.error
+
+    def run(prompt, extra, timeout):
+        key = deepseek_key()
+        if not key:
+            raise ConnectionError("还没配置 DeepSeek API Key。请运行 bash setup_deepseek.sh 设置（或在 config.json 里填 deepseek_api_key）。")
+        cfg = extract.load_cfg()
+        model = cfg.get("deepseek_model", "deepseek-chat")
+        system = extra[extra.index("--system-prompt") + 1] if "--system-prompt" in extra else ""
+        # DeepSeek 的 JSON 模式要求输入里出现 "json" 字样，补一句确保触发
+        user = prompt + "\n\n请只返回一个 json 对象。"
+        body = {"model": model, "stream": False, "temperature": 0.2, "max_tokens": 8192,
+                "response_format": {"type": "json_object"},
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+        req = urllib.request.Request(DS_BASE, data=json.dumps(body).encode(),
+                                     headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+        try:
+            with _ds_opener().open(req, timeout=timeout) as r:
+                d = json.loads(r.read())
+        except urllib.error.HTTPError as e:  # noqa: PERF203
+            msg = e.read().decode(errors="ignore")[:200]
+            if e.code in (401, 403):
+                raise PermissionError(f"DeepSeek API Key 无效或没有权限（{e.code}）。请用 setup_deepseek.sh 重新设置。")
+            if e.code == 402:
+                raise ConnectionError("DeepSeek 账户余额不足，请先充值。")
+            raise ConnectionError(f"DeepSeek 返回错误 {e.code}：{msg}")
+        except Exception as e:  # noqa: BLE001
+            raise ConnectionError(f"连不上 DeepSeek（{e}）。检查网络，或在 config.json 里设置 deepseek_proxy。")
+        try:
+            return d["choices"][0]["message"]["content"], None
+        except (KeyError, IndexError, TypeError):
+            raise ConnectionError(f"DeepSeek 返回格式异常：{str(d)[:200]}")
+    return run
+
+
 # ---------------- 任务 ----------------
 
 JOBS, JOB_LOCK = {}, threading.Lock()
@@ -442,20 +518,20 @@ def job_update(job, body):
             finish_without_ai()
             return
         job.step(1, "running")
-        if not body.get("deep") or provider == "ollama":
-            runner = make_ollama_runner(job) if provider == "ollama" else make_runner(job)
+        if not body.get("deep") or provider in ("ollama", "deepseek"):
+            runner = {"ollama": make_ollama_runner, "deepseek": make_deepseek_runner}.get(provider, make_runner)(job)
             try:
                 res = fastupdate.run_fast(runner, os.path.join(info["out"], "digest.md"), until,
                                           set(build.CATEGORIES), set(build.THREADS), job.say,
                                           effort=cfg.get("claude_effort", "medium"), model=cfg.get("claude_model"),
                                           workers=1 if provider == "ollama" else 5)
             except PermissionError as e:
-                job.say("Claude 登录失效，本次先只生成规则提醒")
+                job.say("AI 登录/密钥失效，本次先只生成规则提醒")
                 finish_without_ai({"code": "auth", "message": str(e)})
                 return
             except ConnectionError as e:
                 job.say(str(e))
-                finish_without_ai({"code": "ollama", "message": str(e)})
+                finish_without_ai({"code": provider, "message": str(e)})
                 return
             job.step(1, "done")
             job.step(2, "running")
@@ -603,6 +679,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/status":
             j = running_job()
             return self._send(200, {"ok": True, "claude": claude_status(), "ollama": ollama_status(),
+                                    "deepseek": deepseek_status(),
                                     "provider": extract.load_cfg().get("ai_provider", "claude"),
                                     "running": j.view() if j else None})
         if path == "/api/state":
