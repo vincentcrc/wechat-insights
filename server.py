@@ -448,6 +448,23 @@ def make_runner(job):
     return run
 
 
+PROVIDER_STEP = {"claude": "Claude 提炼卡片", "deepseek": "DeepSeek 提炼卡片",
+                 "ollama": "本地模型提炼卡片", "none": "不用 AI 提炼"}
+
+
+def resolve_provider(body, cfg=None):
+    cfg = extract.load_cfg() if cfg is None else cfg
+    provider = body.get("provider") or cfg.get("ai_provider", "claude")
+    if not body.get("ai", True):
+        provider = "none"
+    return provider
+
+
+def update_steps(body):
+    """更新任务的三步；中间那步按所选模型命名（Claude / DeepSeek / 本地模型 / 不用 AI）。"""
+    return ["抽取聊天", PROVIDER_STEP.get(resolve_provider(body), "AI 提炼卡片"), "校验并生成"]
+
+
 def job_update(job, body):
     try:
         mode = body.get("mode", "since")
@@ -491,9 +508,7 @@ def job_update(job, body):
         import fastupdate
         import rules
         cfg = extract.load_cfg()
-        provider = body.get("provider") or cfg.get("ai_provider", "claude")
-        if not body.get("ai", True):
-            provider = "none"
+        provider = resolve_provider(body, cfg)
         job.result["extract"]["sns"] = meta.get("sns", {})
         if meta.get("sns", {}).get("posts"):
             job.say(f"朋友圈：{meta['sns']['posts']} 条（{meta['sns']['authors']} 位好友）")
@@ -750,7 +765,7 @@ class Handler(BaseHTTPRequestHandler):
                 if running_job():
                     return self._send(409, {"error": "已有任务在运行", "job": running_job().view()})
                 if path == "/api/update":
-                    job = Job("update", "更新数据", ["抽取聊天", "Claude 提炼卡片", "校验并生成"])
+                    job = Job("update", "更新数据", update_steps(body))
                     target = job_update
                 else:
                     job = Job("ask", "问 Claude", ["取原始消息", "Claude 分析", "更新卡片"])
